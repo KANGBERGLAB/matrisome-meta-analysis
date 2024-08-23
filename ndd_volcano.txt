@@ -1,0 +1,219 @@
+```{r}
+merged_seurat[["RNA"]] <- JoinLayers(merged_seurat[["RNA"]])
+pseudo_obj <- AggregateExpression(merged_seurat, assays = "RNA", return.seurat = T, group.by = c("gestation", "customclassif_merged", "study"))
+```
+
+
+```{r}
+Idents(pseudo_obj) <- pseudo_obj$customclassif_merged
+
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia')
+
+
+pseudo_obj@active.ident <- factor(x = pseudo_obj@active.ident, levels = my_levels)
+
+pseudo_obj <- ScaleData(pseudo_obj,features = rownames(pseudo_obj))
+
+```
+
+
+ #import matrisome db
+```{r}
+matrisome <- read.table("./Hs_Matrisome_Masterlist.csv", header = T, sep = ',')
+#extract gene symbols
+matrisome_list <- matrisome$Gene_Symbol
+```
+
+
+#split core and associated matrisome
+```{r}
+core_matrisome <- subset(matrisome, subset = Division == "Core matrisome")
+associated_matrisome <- subset(matrisome, subset = Division == "Matrisome-associated")
+
+# extrarct gene symbol 
+selected_core_matrisome <- core_matrisome$Gene_Symbol
+selected_associated_matrisome <- associated_matrisome$Gene_Symbol
+```
+
+```{r}
+sfari <- read.table("./SFARI_gene.csv", header = T, sep = ',') #1162 unique genes
+
+
+sfari_mat <- intersect (sfari$gene.symbol, matrisome_list)
+```
+
+
+```{r}
+syndd <- read.table('./sysndd_gene_table.csv', header = T, sep = ',') #1372 unique genes
+
+syndd_mat <- intersect (syndd$symbol, matrisome_list)
+```
+
+
+```{r}
+dbd <- read.table('./DBD-Genes-Full-Data.csv', header = T, sep = ',') #1183 unique genes
+
+dbd_mat <- intersect (dbd$Gene, matrisome_list)
+```
+
+
+```{r}
+all_mat <- c(sfari_mat, syndd_mat, dbd_mat) #126 mat genes
+u_asd <- unique (c(sfari_mat, syndd_mat, dbd_mat)) #105 unique
+
+ma_core <- read.csv(file = ".fig1_motivation/ndd/NDD-Genes_Core_Matrisome_MA.csv")
+ma_asso <- read.csv(file = "./fig1_motivation/ndd/NDD-Genes_Matrisome_associated_MA.csv")
+
+u_asd <- c(u_asd, setdiff(c(ma_core$Annotated.Gene, ma_asso$Annotated.Gene),u_asd)) #139 unique
+
+asd_table <- as.data.frame(table(all_mat))
+```
+
+
+```{r}
+nddcellcount <- read.csv(file = "./ndd_celltype_count_129genes.csv")
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia')
+colpal <- c ("#C7EBB1", "#FFD5FF", "#81B1DE", "#CA2F40", "#DEB0B0", "#C1D4E6", "#34854D", "#FCA594", "#C58862", "#7F517D", "#33608C")
+
+nddcellcount <- subset (nddcellcount, ndd != "ADHD")
+
+nddcellcount$celltype <- factor (nddcellcount$celltype, levels = my_levels)
+nddcellcount$ndd <- factor (nddcellcount$ndd, levels = c("ID", "ASD", "EP", "SCZ", "CP"))
+  
+ggplot(nddcellcount,
+       aes(x = celltype, y = freq,
+           fill = celltype, label = ndd)) +
+  theme_clean()+
+  geom_bar(stat = "identity")+
+  scale_fill_manual(values = colpal)+
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5))+
+  scale_x_discrete(expand = c(0.05,0.05)) +
+  facet_grid(rows = vars(ndd))+
+  ylab ("Number of matrisome markers")+
+  xlab ("Cell type")
+```
+
+```{r}
+sum_df <- nddcellcount %>%
+  group_by(celltype) %>%
+  summarize(sum_frequency = sum(freq))
+
+result_df <- nddcellcount %>%
+  left_join(sum_df, by = "celltype")
+
+result_df$prop <- result_df$freq/result_df$sum_frequency
+```
+
+```{r}
+result_df <- subset (result_df, ndd != "ADHD")
+
+result_df$celltype <- factor (result_df$celltype, levels = my_levels)
+  
+ggplot(result_df,
+       aes(x = celltype, y = prop,
+           fill = celltype, label = ndd)) +
+  theme_clean()+
+  geom_bar(stat = "identity")+
+  scale_fill_manual(values = colpal)+
+  theme(legend.position = "bottom")+
+  scale_x_discrete(expand = c(0.05,0.05)) +
+  facet_grid(rows = vars(ndd))+
+  ylab ("Proportion of matrisome markers")+
+  xlab ("Cell type")
+```
+
+```{r}
+result_df <- subset (result_df, ndd != "ADHD")
+
+result_df$celltype <- factor (result_df$celltype, levels = my_levels)
+result_df$ndd <- factor (result_df$ndd, levels = c("ID", "ASD", "EP", "SCZ", "CP"))
+  
+ggplot(result_df,
+       aes(x = ndd, y = prop,
+           fill = celltype, label = ndd)) +
+  theme_clean()+
+  ylim (0,1) +
+  geom_bar(stat = "identity")+
+  scale_fill_manual(values = colpal)+
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5))+
+  scale_x_discrete(expand = c(0.05,0.05)) +
+  facet_grid(cols = vars(celltype))+
+  ylab ("Proportion of matrisome markers")+
+  xlab ("Type of neurodevelopmental disorder")
+```
+
+
+```{r}
+mic_markers <- FindMarkers(pseudo_obj, ident.1 = "Microglia")
+mic_markers$gene <- rownames(mic_markers)
+mic_markers <- subset(mic_markers, gene %in% u_asd)
+```
+
+
+
+```{r}
+library(ggrepel)
+
+mic_markers$DEG <- "Not significant"
+mic_markers$DEG[mic_markers$avg_log2FC > 1 & mic_markers$p_val_adj < 0.05] <- "Upregulated"
+mic_markers$DEG[mic_markers$avg_log2FC < -1 & mic_markers$p_val_adj < 0.05] <- "Downregulated"
+
+mycolors <- c("slateblue1", "tomato2", "grey")
+names(mycolors) <- c("DOWN", "UP", "NO")
+
+mic_markers$gene <- rownames(mic_markers)
+
+mic_markers$delabel <- NA
+mic_markers$delabel[mic_markers$p_val_adj <0.05 & mic_markers$avg_log2FC > 1 | mic_markers$p_val_adj <0.05 & mic_markers$avg_log2FC < -1] <- mic_markers$gene[mic_markers$p_val_adj <0.05 & mic_markers$avg_log2FC > 1 | mic_markers$p_val_adj <0.05 & mic_markers$avg_log2FC < -1]
+
+
+m_deg <- ggplot(data=mic_markers, aes(x=avg_log2FC, y=-log10(p_val_adj), col=DEG, label=delabel)) +
+        geom_point(size =1.5, alpha = 0.5) + 
+        theme_classic() +
+        geom_text_repel(max.overlaps = Inf, size = 3) +
+        scale_color_manual(values=c("slateblue1", "grey", "tomato1")) +
+        geom_vline(xintercept=c(-1, 1), col = "grey", linetype = 'dashed') +
+        geom_hline(yintercept=-log10(0.05), col = "grey", linetype = 'dashed') +
+  labs( x = expression("log"[2]*"FC"), y = "Adj. p-value")+
+        ggtitle("Microglia NDD risk matrisome genes") +
+        theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+
+
+```{r}
+org_markers <- FindMarkers(pseudo_obj, ident.1 = "oRG")
+org_markers$gene <- rownames(org_markers)
+org_markers <- subset(org_markers, gene %in% u_asd)
+```
+
+
+
+```{r}
+library(ggrepel)
+
+org_markers$DEG <- "Not significant"
+org_markers$DEG[org_markers$avg_log2FC > 1 & org_markers$p_val_adj < 0.05] <- "Upregulated"
+org_markers$DEG[org_markers$avg_log2FC < -1 & org_markers$p_val_adj < 0.05] <- "Downregulated"
+
+mycolors <- c("slateblue1", "tomato2", "grey")
+names(mycolors) <- c("DOWN", "UP", "NO")
+
+org_markers$gene <- rownames(org_markers)
+
+org_markers$delabel <- NA
+org_markers$delabel[org_markers$p_val_adj <0.05 & org_markers$avg_log2FC > 1 | org_markers$p_val_adj <0.05 & org_markers$avg_log2FC < -1] <- org_markers$gene[org_markers$p_val_adj <0.05 & org_markers$avg_log2FC > 1 | org_markers$p_val_adj <0.05 & org_markers$avg_log2FC < -1]
+
+
+o_deg <- ggplot(data=org_markers, aes(x=avg_log2FC, y=-log10(p_val_adj), col=DEG, label=delabel)) +
+        geom_point(size =1.5, alpha = 0.5) + 
+  ylim(0,4)+
+        theme_classic() +
+        geom_text_repel(max.overlaps = Inf, size = 3) +
+        scale_color_manual(values=c("grey", "tomato1")) +
+        geom_vline(xintercept=c(-1, 1), col = "grey", linetype = 'dashed') +
+        geom_hline(yintercept=-log10(0.05), col = "grey", linetype = 'dashed') +
+  labs( x = expression("log"[2]*"FC"), y = "Adj. p-value")+
+        ggtitle("oRG NDD risk matrisome genes") +
+        theme(plot.title = element_text(hjust = 0.5)) 
+```

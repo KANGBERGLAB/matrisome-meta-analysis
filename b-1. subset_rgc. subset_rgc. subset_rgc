@@ -1,0 +1,157 @@
+```{r}
+colpal <- c ("#C7EBB1", "#FFD5FF", "#81B1DE", "#CA2F40", "#DEB0B0", "#C1D4E6", "#34854D", "#FCA594", "#C58862", "#7F517D", "#33608C", "#F5CA61", "#49525E")
+```
+
+```{r}
+Idents(merged_seurat) <- merged_seurat$customclassif_merged
+
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia', 'Endo.', 'Unknown')
+
+
+merged_seurat@active.ident <- factor(x = merged_seurat@active.ident, levels = my_levels)
+```
+
+
+
+
+```{r}
+carryover <- c("merged_seurat", 'matrisome_markers', "selected_core_matrisome", "selected_associated_matrisome", "neurolin_associated_matrisome_markers", "neurolin_core_matrisome_markers", "rg_seurat", "neurolin_matrisome_markers")
+
+rm(list = setdiff(ls(), carryover))
+```
+
+
+
+
+```{r}
+colpal <- c ("#C7EBB1", "#FFD5FF", "#81B1DE")
+```
+
+
+```{r}
+to_keep <- c('vRG', 'oRG', 'tRG')
+
+
+rg_seurat <- subset(merged_seurat, subset = customclassif_merged %in% to_keep)
+
+```
+
+```{r}
+Idents(rg_seurat) <- rg_seurat$customclassif_merged
+
+my_levels <- c('vRG', 'oRG', 'tRG')
+
+
+rg_seurat@active.ident <- factor(x = rg_seurat@active.ident, levels = my_levels)
+```
+
+#checking RG mat markers
+
+```{r}
+rg_core_matrisome_markers <- subset (core_matrisome_markers, subset = core_matrisome_markers$cluster %in% my_levels)
+rg_associated_matrisome_markers <- subset (associated_matrisome_markers, subset = associated_matrisome_markers$cluster %in% my_levels)
+```
+
+
+
+
+```{r}
+DimPlot(rg_seurat, reduction = 'umap', label = TRUE, group.by = "customclassif_merged", repel = T) + NoAxes() + ggtitle("")
+
+```
+
+
+# import matrisome db
+```{r}
+matrisome <- read.table("~/Hs_Matrisome_Masterlist.csv", header = T, sep = ',')
+#extract gene symbols
+matrisome_list <- matrisome$Gene_Symbol
+```
+
+
+#split core and associated matrisome
+```{r}
+core_matrisome <- subset(matrisome, subset = Division == "Core matrisome")
+associated_matrisome <- subset(matrisome, subset = Division == "Matrisome-associated")
+
+# extrarct gene symbol 
+selected_core_matrisome <- core_matrisome$Gene_Symbol
+selected_associated_matrisome <- associated_matrisome$Gene_Symbol
+```
+
+
+#find markers to sort heatmap by features
+
+```{r}
+rg.all.markers <- FindAllMarkers(rg_seurat, only.pos = T)
+```
+
+
+#all matrisome
+```{r}
+rg.matrisome_markers <- subset (rg.all.markers, gene %in% matrisome_list)
+
+rg.matrisome_markers <- subset (rg.matrisome_markers, pct.1 > 0.25)
+length (rg.matrisome_markers$gene)
+
+
+```
+
+setdiff(rg_intra_deg$gene,rg_enrich$gene)
+ [1] "CLEC14A"  "S100A8"   "TIMP4"    "SFTA3"    "NELL1"    "ADAM28"   "LAMB1"    "COL9A3"   "COL20A1"  "CLEC7A"  
+[11] "SMOC2"    "S100A9"   "VWC2"     "COL15A1"  "EGFL7"    "PLXND1"   "CBLN1"    "NELL2"    "NTN5"     "FRAS1"   
+[21] "RSPO3"    "SERPINF1" "SPOCK3"   "SRGN"     "MEGF6"    "C1QB"     "KITLG"    "SEMA3E"   "FGF12"    "SERPINB9"
+[31] "CBLN2"    "C1QC"     "LGI1"     "CCBE1"    "TNR"      "INHBA"    "CCL4L2"   "S100A11"  "CCL4"     "CCL3"    
+[41] "C1QA"     "CTSS"     "SERPINI1" "SPP1"     "IL1B"     "VCAN"     "GLDN"     "CRHBP"    "PDGFB"    "A2M"     
+[51] "OSM"      "ECM1"     "FGF14"    "CXCL8"    "SERPINE2" "HPSE"    
+
+intersect(setdiff(rg_intra_deg$gene,rg_enrich$gene), rgtop5$gene)
+[1] "TIMP4"   "COL15A1"
+
+
+```{r}
+rg_enrich <- subset (matrisome_markers, subset = matrisome_markers$cluster %in% my_levels & pct.1 > 0.25)
+
+
+rg_intra_deg <-  subset (rg.matrisome_markers, subset =  pct.1 > 0.25)
+
+
+x <- list(
+  RG_enriched = rg_enrich$gene, 
+  RG_subtype = rg_intra_deg$gene
+  )
+
+library("ggVennDiagram")
+ggVennDiagram(x) + scale_fill_distiller(palette = "RdBu")
+```
+
+
+
+```{r}
+setdiff(rg_enrich$gene, rg_intra_deg$gene) 
+DotPlot(rg_seurat, features = setdiff(rg_enrich$gene, rg_intra_deg$gene), cols = 'RdBu') + RotatedAxis() + scale_size(range = c(1, 8))
+```
+
+
+
+
+#core
+```{r}
+rg.core_matrisome_markers <- subset (rg.matrisome_markers, gene %in% selected_core_matrisome)
+```
+
+
+#associated
+```{r}
+rg.associated_matrisome_markers <- subset (rg.matrisome_markers, gene %in% selected_associated_matrisome)
+```
+
+
+
+```{r}
+#RG enriched, cell type markers
+setdiff(rg_core_matrisome_markers$gene, rg.core_matrisome_markers$gene) 
+
+# not DEG within RG groups
+setdiff(rg_associated_matrisome_markers$gene, rg.associated_matrisome_markers$gene)
+```

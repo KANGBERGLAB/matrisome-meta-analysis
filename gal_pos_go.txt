@@ -1,0 +1,63 @@
+t1 = upregulated
+t2 = downregulated
+
+```{r}
+scale_col <- wes_palette ("Zissou1", 100, type = "continuous")
+
+ggplot(go, aes(x=Enrichment_ratio, y=Name, size=Genes_from_Input, color=FDR_BH)) + geom_point(alpha = 0.8) + theme_classic()
+
+
+p1 <- ggplot(t1, aes(x = Enrichment_ratio, y = reorder(Name, Enrichment_ratio), 
+                  size = Genes_from_Input, color = -log10(FDR_BH))) +
+  geom_point(alpha = 1) +
+  theme_clean(base_size = 12) +
+  scale_color_gradientn(colours =scale_col, limits = c(0,36)) +
+  xlim (0,0.13) +
+  xlab ("Enrichment Score") +
+  ylab ("Term") +       
+  labs(color = "-log10(Adj P)", size = "Number of genes") +
+  ggtitle ("Enriched CC")+
+        theme(plot.title = element_text(hjust = 0.5, vjust = 3.3)) +
+  theme(axis.title.y = element_text(size = 14, vjust = 3.3), panel.border =element_rect(linetype = "solid", fill = NA), axis.text.y = element_text(colour = go$colour, face = go$font)) +
+  scale_size_continuous(limits = c(20,60), breaks = c(20,30,40,50,60))
+```
+
+```{r}
+scale_col <- wes_palette ("Zissou1", 100, type = "continuous")
+
+ggplot(go, aes(x=Enrichment_ratio, y=Name, size=Genes_from_Input, color=FDR_BH)) + geom_point(alpha = 0.8) + theme_classic()
+
+
+p2 <- ggplot(t2, aes(x = Enrichment_ratio, y = reorder(Name, Enrichment_ratio), 
+                  size = Genes_from_Input, color = -log10(FDR_BH))) +
+  geom_point(alpha = 1) +
+  theme_clean(base_size = 12) +
+  scale_color_gradientn(colours =scale_col, limits = c(0,36)) +
+  xlim (0,0.13) +
+  xlab ("Enrichment Score") +
+  ylab ("Term") +       
+  labs(color = "-log10(Adj P)", size = "Number of genes") +
+  ggtitle ("Enriched BP")+
+        theme(plot.title = element_text(hjust = 0.5, vjust = 3.3)) +
+  theme(axis.title.y = element_text(size = 14, vjust = 3.3), panel.border =element_rect(linetype = "solid", fill = NA), axis.text.y = element_text(colour = go$colour, face = go$font)) +
+  scale_size_continuous(limits = c(20,60), breaks = c(20,30,40,50,60))
+```
+
+```{r}
+
+p2 <- p1 + facet_grid(cols = vars(source))
+```
+
+```{r}
+g <- ggplot_gtable(ggplot_build(p2))
+strip_both <- which(grepl('strip-', g$layout$name))
+colpal <- c("#298D86", "#C58862", "#7F517D")
+k <- 1
+
+for (i in strip_both) {
+  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- colpal[k]
+  k <- k+1
+}
+grid.draw(g)
+```

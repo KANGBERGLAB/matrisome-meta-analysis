@@ -1,0 +1,44 @@
+```{r}
+Idents(merged_seurat) <- merged_seurat$customclassif_merged
+t1 <- c('8', '9', '10', '10.5', '11', '12')
+t2 <- c('13','14', '16', '17', '18', '19')
+t4 <- c('20', '22', '23', '25', '26')
+merged_seurat_2 <- merged_seurat
+merged_seurat_2$bracket <- ifelse (merged_seurat_2$gestation %in% t1, "T1",
+                                 ifelse (merged_seurat_2$gestation %in% t2, "early T2",
+                                                  "late T2"
+                                                         ))
+microglia_seurat <- subset (merged_seurat_2, subset = customclassif_merged == "Microglia")
+```
+
+
+```{r}
+Idents(microglia_seurat) <- microglia_seurat$bracket
+my_levels <- c('T1', 'early T2','late T2')
+microglia_seurat@active.ident <- factor(x = microglia_seurat@active.ident, levels = my_levels)
+mic_markers <- FindAllMarkers(microglia_seurat, only.pos = T)
+mic_markers <- subset(microglia_seurat, pct.1 > 0.25)
+mic_core_marker <- subset (mic_markers, gene %in% core_matrisome$Gene_Symbol)
+mic_associated_marker <- subset (mic_markers, gene %in% associated_matrisome$Gene_Symbol)
+micmat_markers <- subset (mic_markers, subset = rownames(mic_markers) %in% matrisome_list)
+micmat_markers <- subset (mic_markers, subset = rownames(mic_markers) %in% matrisome_list)
+```
+
+```{r}
+Idents(microglia_seurat) <- microglia_seurat$bracket
+pseudo_seurat <- AggregateExpression(microglia_seurat, assays = "RNA", return.seurat = T, group.by = "bracket")
+pseudo_seurat <- ScaleData(pseudo_seurat)
+my_levels <- c('T1', 'early T2', 'late T2')
+pseudo_seurat@active.ident <- factor(x = pseudo_seurat@active.ident, levels = my_levels)
+```
+
+```{r}
+ccustom_mat_ht <- DoHeatmap(object = pseudo_seurat, features = c("COL19A1", "COL3A1", "COL9A1", "IGFBP3", "SPON2", "OMD", "VWA3A", "NTNG1",  "IGFBP4","MFAP4", "LUM",
+                                                                 "POSTN", "LAMC1", "COL21A1", "HMCN1", "HAPLN3", "FBLN2",
+                                                                 "TINAGL1", "SPARCL1", "COL5A2", "SPOCK2", "COL4A1", "COL25A1", "NTN1", "COL9A3", "BCAN", "SPARC"), group.colors = colpal) 
+
+
+acustom_mat_ht <- DoHeatmap(object = pseudo_seurat, features = c("PARM1", "ADAM12", "WNT7B", "BRINP3", "SFRP2", "ANXA3", "ANGPTL4",
+                                                                "ADAMTSL1", "VEGFC", "ISM1", "ADAMTS17", "CTSK", "GPC5", "NODAL", "NRG1", "INHBA", "BMP7", "ADAMTS6", "TNFSF15",
+                                                                "ADAMTS1", "ANGPT1", "AGT", "CST7", "PGF", "S100A16", "CBLN2", "C1QL1", "HBEGF", "HTRA3"), group.colors = colpal)
+```

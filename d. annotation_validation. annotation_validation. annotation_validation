@@ -1,0 +1,224 @@
+```{r}
+marker_genes <- c ('SOX2', 'VIM','HES1', 'SOX3', 'FBXO32', 'TFAP2C', 'EGFR','HOPX','PTPRZ1', 'TNC', 'MOXD1', 'FAM107A', 'CRYAB', "CD38", "NR4A1", 'EOMES', 'ASCL1', 'SMARCA4','MSI1','MSI2','INSM1', 'NCAM', 'NEUROD1', 
+                   'DCX', 'BCL11B', 'NRP1', 'SATB2', 'GAP43', 'SOX10','OLIG1', 'OLIG2', "PCDH15","PDGFRA", 'CXCL14','GFAP', 'SPARCL1', 'S100B','SLC1A3','AQP4', "CD68","AIF1","CX3CR1","TMEM119", "PECAM1","VCAM1","CDH5")
+marker_genes <- intersect (unique(marker_genes), rownames (merged_seurat))
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia', 'Endo.', 'Unknown')
+  
+merged_seurat_2 <- merged_seurat
+
+Idents(merged_seurat_2) <- merged_seurat_2$customclassif_merged
+merged_seurat_2@active.ident <- factor(x = merged_seurat_2@active.ident, levels = my_levels)
+
+DoHeatmap(object = merged_seurat_2, features = marker_genes, assay = 'integrated', group.colors = colpal)
+
+DoHeatmap(object = merged_seurat_2, features = c('SOX2', 'VIM','HES1', 'SOX3', 'EGFR','HOPX','PTPRZ1', 'MOXD1', 'FAM107A', 'CRYAB', "NR4A1", 'EOMES', 'ASCL1', 'INSM1',  'NEUROD1', 'DCX','TBR1', 'BCL11B', 'NRP1', 'SATB2', 'GAP43', 
+                                                 'SOX10','OLIG1', 'OLIG2', "PCDH15",'CXCL14','GFAP', 'SPARCL1', 'SLC1A3','AQP4', "CD68","AIF1","CX3CR1","TMEM119"), assay = 'integrated', group.colors = colpal)
+
+#cell type validation
+
+##make_plot_functions
+create_feature_plot <- function(df, gene) {
+  if (gene %in% rownames(df)) {
+    FeaturePlot(df, features = gene, min.cutoff = 'q10') + scale_colour_gradientn(colours = brewer.pal(n = 11, name = "YlOrRd")) + NoAxes()
+  } else {
+    message(paste("Gene", gene, "not found in the Seurat object. Skipping..."))
+    NULL  # Return NULL for skipped genes
+  }
+}
+create_vln_plot <- function(df, gene, group) {
+  if (gene %in% rownames(df)) {
+    df <- AddModuleScore(
+  object = df,
+  features = gene,
+  ctrl = 50,
+  name = gene
+)
+VlnPlot(df, features = c(gene), group.by = group, pt.size = 0, cols = colpal)+
+  geom_boxplot(width=0.1)
+  } else {
+    message(paste("Gene", gene, "not found in the Seurat object. Skipping..."))
+    NULL  # Return NULL for skipped genes
+  }
+}
+
+marker_genes <- c ('SOX2', 'VIM','HES1', 'SOX3', 'FBXO32', 'TFAP2C', 'EGFR','HOPX','PTPRZ1', 'TNC', 'MOXD1', 'FAM107A', 'CRYAB', "CD38", "NR4A1", 'EOMES', 'ASCL1', 'SMARCA4','MSI1','MSI2','INSM1', 'TBR1', 'NEUROD1', 'DCX', 'BCL11B', 'NRP1', 'SATB2', 
+                   'GAP43', "GAD1", "NR4A2", 'SOX10','OLIG1', 'OLIG2', "PCDH15","PDGFRA", 'CXCL14','GFAP', 'SPARCL1', 'S100B','SLC1A3','AQP4', "CD68","AIF1","CX3CR1","TMEM119", "PECAM1")
+marker_genes <- intersect (unique(marker_genes), rownames (merged_seurat))
+
+
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia', 'Endo.', 'Unknown')
+Idents(merged_seurat) <- merged_seurat$customclassif_merged
+merged_seurat_2 <- merged_seurat
+merged_seurat_2$customclassif_merged <- factor(x = merged_seurat_2$customclassif_merged, levels = my_levels)
+plot_list <- list()
+
+for (gene in marker_genes) {
+  plot_list[[gene]] <- list(
+    feature_plot = create_feature_plot(merged_seurat_2, gene),
+    vln_plot = create_vln_plot(merged_seurat_2, gene, "customclassif_merged")
+  )
+}
+
+
+
+#glial cell validation
+vln_list <- list()
+merged_seurat_2$customclassif_merged <- factor(x = merged_seurat_2$customclassif_merged, levels = my_levels)
+
+glia <- c("vRG","oRG", "tRG","OPC","Astro.")
+temp_seurat <- subset (merged_seurat_2, subset = customclassif_merged == glia)
+
+colpal <- c ("#C7EBB1", "#FFD5FF", "#81B1DE", "#C58862", "#7F517D")
+for (gene in marker_genes) {
+  vln_list[[gene]] <- create_vln_plot(temp_seurat, gene, "customclassif_merged")
+}
+
+colpal <- c ("#C7EBB1", "#FFD5FF", "#81B1DE", "#CA2F40", "#DEB0B0", "#C1D4E6", "#34854D", "#FCA594", "#C58862", "#7F517D", "#33608C")
+vln_list
+
+
+#cell counts for gestations
+merged_seurat_2 <- merged_seura
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia')
+merged_seurat_2$customclassif_merged <- factor(x = merged_seurat_2$customclassif_merged, levels = my_levels)
+
+library(ggplot2)
+library(dplyr)
+
+cell_counts <- with(merged_seurat_2@meta.data, table(gestation, customclassif_merged)) %>%
+  as.data.frame()
+filtered_data <- filter(cell_counts, Freq > 0)
+filtered_data$gestation <- factor(filtered_data$gestation, levels = c('8', '9', '10', '10.5', '11', '12', '13', '14', '16', '17', '18', '19', '20', '22', '23', '25', '26'))
+
+
+ggplot(filtered_data, aes(x = gestation, y = customclassif_merged, size = Freq)) +
+  geom_point(aes(color = Freq)) +
+  labs(x = "Gestation week", y = "Cell Type", size = "Cell Count") +
+  ggtitle("") +
+  scale_size_continuous(name = "Cell Count", range = c(2, 10)) +
+  theme_classic()+ scale_color_gradient(low = "slateblue2", high = "tomato1")
+
+totals_per_gestation <- cell_counts %>%
+  group_by(gestation) %>%
+  summarize(Total_Count = sum(Freq))
+cell_counts <- cell_counts %>%
+  left_join(totals_per_gestation, by = "gestation")
+cell_counts$Proportion <- cell_counts$Freq / cell_counts$Total_Count
+cell_counts$gestation <- factor(cell_counts$gestation, levels = c('8', '9', '10', '10.5', '11', '12', '13', '14', '16', '17', '18', '19', '20', '22', '23', '25', '26'))
+
+filtered_data <- filter(cell_counts, Freq > 0)
+
+ggplot(filtered_data, aes(x = gestation, y = customclassif_merged, size = Proportion)) +
+  geom_point(aes(color = Freq)) +
+  labs(x = "Gestation week", y = "Cell Type", size = "Proportion") +
+  ggtitle("") +
+  scale_size_continuous(name = "Proportion", range = c(2, 10)) +
+  theme_classic()+ scale_color_gradient(low = "slateblue2", high = "tomato1")
+
+```
+
+
+
+```{r}
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia')
+merged_seurat_2 <- subset (merged_seurat, customclassif_merged %in% my_levels)
+merged_seurat_2$customclassif_merged <- factor(x = merged_seurat_2$customclassif_merged, levels = my_levels)
+```
+
+
+```{r}
+t1 <- c('8', '9', '10', '10.5', '11', '12')
+t2 <- c('13','14', '16', '17')
+t3 <- c('18', '19', '20', '22')
+t4 <- c('23', '25', '26')
+```
+
+
+```{r}
+merged_seurat_2$bracket <- ifelse (merged_seurat_2$gestation %in% t1, "T1",
+                                 ifelse (merged_seurat_2$gestation %in% t2, "early T2",
+                                         ifelse (merged_seurat_2$gestation %in% t3, "mid T2",
+                                                  "late T2"
+                                                         )))
+RG <- c("vRG", "oRG", "tRG")
+PC <- c("IPC")
+PN <- c("Imm. PN", "CPN", "DA neuron")
+
+merged_seurat_2$lineage <- ifelse (merged_seurat_2$customclassif_merged %in% RG, "RG",
+                                 ifelse (merged_seurat_2$customclassif_merged %in% PC, "IPC",
+                                         ifelse (merged_seurat_2$customclassif_merged %in% PN, "PN",
+                                                  as.character (merged_seurat_2$customclassif_merged)
+                                                         )))
+```
+
+
+```{r}
+my_levels2 <- c('RG', 'IPC', 'PN', 'GABA IN', 'OPC', 'Astro.', 'Microglia')
+merged_seurat_2$lineage <- factor(x = merged_seurat_2$lineage, levels = my_levels2)
+
+cell_counts <- with(merged_seurat_2@meta.data, table(bracket, lineage)) %>%
+  as.data.frame()
+totals_per_gestation <- cell_counts %>%
+  group_by(bracket) %>%
+  summarize(Total_Count = sum(Freq))
+
+cell_counts <- cell_counts %>%
+  left_join(totals_per_gestation, by = "bracket")
+cell_counts$Proportion <- cell_counts$Freq / cell_counts$Total_Count
+cell_counts$bracket <- factor(cell_counts$bracket, levels = c('T1', 'early T2', 'mid T2', 'late T2'))
+
+ggplot(cell_counts, aes(x = bracket, y = lineage, size = Proportion)) +
+  geom_point(aes(color = Freq)) +
+  labs(x = "Gestation time bracket", y = "Cell Type", size = "Proportion") +
+  ggtitle("") +
+  scale_size_continuous(name = "Proportion", range = c(2, 10)) +
+  theme_classic()+ scale_color_gradient(low = "slateblue2", high = "tomato1")
+
+colpal <- c ("#298D86", "#CA2F40", "#F3EEC1", "#FCA594", "#C58862", "#7F517D", "#33608C")
+ggplot(cell_counts,
+       aes(x = bracket, stratum = lineage, alluvium = lineage, y = Proportion,
+           fill = lineage, label = lineage)) +
+  theme_clean()+
+  theme(legend.position = "bottom")+
+  scale_fill_manual(values = colpal)+
+  geom_flow() +
+  geom_stratum() +
+  #geom_text(stat = "stratum", size = 2) +
+  xlab ("Trimester")+ scale_x_discrete(expand = c(0.05,0.05))
+
+#early
+
+gw1_cells <- which(merged_seurat$gestation %in% t1)
+  
+plot1 <- DimPlot(merged_seurat, label = F, group.by = "gestation",
+                  cells.highlight = gw1_cells,
+                  cols.highlight = "#4D6291", cols = "grey",
+                  raster = F, repel = T) + NoLegend() + ggtitle("T1 (GW8-12)")+NoAxes()
+  
+
+#mid
+
+gw2_cells <- which(merged_seurat$gestation %in% t2)
+plot2 <- DimPlot(merged_seurat, label = F, group.by = "gestation",
+                  cells.highlight = gw2_cells,
+                  cols.highlight = "#FFF514", cols = "grey",
+                  raster = F, repel = T) + NoLegend() + ggtitle("early T2 (GW13-17)")+NoAxes()
+  
+
+#mid2
+
+gw3_cells <- which(merged_seurat$gestation %in% t3)
+plot3 <- DimPlot(merged_seurat, label = F, group.by = "gestation",
+                  cells.highlight = gw3_cells,
+                  cols.highlight = "#FA9018", cols = "grey",
+                  raster = F, repel = T) + NoLegend() + ggtitle("mid T2 (GW18-22)") +NoAxes()
+
+#late
+
+gw4_cells <- which(merged_seurat$gestation %in% t4)
+plot4 <- DimPlot(merged_seurat, label = F, group.by = "gestation",
+                  cells.highlight = gw4_cells,
+                  cols.highlight = "#BE2641", cols = "grey",
+                  raster = F, repel = T) + NoLegend() + ggtitle("late T2 (GW23-26)") +NoAxes()
+
+```

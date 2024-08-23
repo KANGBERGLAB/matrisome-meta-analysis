@@ -1,0 +1,101 @@
+---------------------- Create a merged object
+gc()
+merged_seurat <- merge(bhaduri, y = c(bruggen, cameron, delgado, trevino, zhong),
+      add.cell.ids = ls()[1:6],
+      project = 'meta_analysis')
+merged_seurat$sample <- rownames(merged_seurat@meta.data)
+merged_seurat@meta.data <- separate(merged_seurat@meta.data, 
+                                    col = 'sample', 
+                                    into = c('study', 'Barcode'), 
+                                    sep = '_')
+gc()
+
+split_by_study <- SplitObject(merged_seurat, split.by = "study")
+split_by_study <- lapply(X = split_by_study, FUN = function(x) {
+    x <- NormalizeData(x, normalization.method = "LogNormalize", scale.factor = 10000)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+sim_features <- SelectIntegrationFeatures(object.list = split_by_study, nfeatures = 2000)
+study.anchors <- FindIntegrationAnchors(object.list = split_by_study, anchor.features = sim_features, dims = 1:20)
+merged_seurat <- IntegrateData(anchorset = study.anchors)
+gc()
+
+merged_seurat <- ScaleData(merged_seurat, vars.to.regress = c("nCount_RNA"), features = rownames(merged_seurat))
+merged_seurat <- RunPCA(object = merged_seurat, features = VariableFeatures(merged_seurat))
+merged_seurat <- FindNeighbors(object = merged_seurat, dims = 1:20, k.param = 20)
+merged_seurat <- FindClusters(object = merged_seurat, resolution = 1.2)
+merged_seurat <- RunUMAP(object = merged_seurat, dims = 1:20)
+gc()
+
+----------------------- Visualise integration
+Idents(merged_seurat) <- merged_seurat$study
+unique_studies <- unique(merged_seurat$study)
+plot_list <- list()
+study_colors <- c("royalblue1", "olivedrab3", "tomato1", "burlywood2", "lightskyblue1")
+DimPlot(merged_seurat, reduction = 'umap', label = F, group.by = "study", repel = T, cols = study_colors) + NoAxes() + ggtitle("")
+for (i in seq_along(unique_studies)) {
+  study_name <- unique_studies[i]
+  study_cells <- which(merged_seurat$study == study_name)
+  
+  plot <- DimPlot(merged_seurat, label = FALSE, group.by = "study",
+                  cells.highlight = study_cells,
+                  cols.highlight = study_colors[i], cols = "grey",
+                  raster = FALSE) + NoLegend() + ggtitle(paste(study_name, "et al.")) + NoAxes()
+  
+  plot_list[[study_name]] <- plot
+}
+
+--------------------- Check distributions by study
+# Create a data frame with the counts per gestation
+merged_seurat_2 <- merged_seurat
+study_counts <- table(merged_seurat_2$study)
+study_df <- data.frame(study = names(study_counts),
+                           cell_count = as.numeric(study_counts))
+
+# Plotting
+ggplot(study_df, aes(x = study, y = cell_count)) +
+  geom_bar(stat = "identity", color = 'black', fill = study_colors, width = 0.7) +
+  labs(x = "Authors", y = "Number of Cells") +
+  geom_text(aes(label=cell_count),
+  position=position_dodge(width=0.9), vjust=-0.25)+
+  ggtitle("Cell Counts per Study") +
+  theme_classic()+
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+study_counts <- table(merged_seurat_2$study)
+study_df <- data.frame(study = names(study_counts),
+                       cell_count = as.numeric(study_counts))
+# Calculate percentage
+study_df$percentage <- study_df$cell_count / sum(study_df$cell_count) * 100
+study_df$pct <- round (study_df$percentage, digit =1)
+
+pie(study_df$percentage, labels = paste (study_df$study, sep = ' ', study_df$pct, '%'),
+    main = "Sample contribution",
+    col = study_colors)
+
+
+
+---------------------- Create a data frame with the counts per gestation
+cell_counts <- with(merged_seurat_2@meta.data, table(gestation, study)) %>%
+  as.data.frame()
+
+cell_counts$gestation <- factor(cell_counts$gestation, levels = c( '8', '9','10', '10.5', '11', '12', '13', '14', '16', '17', '18', '19', '20', '22', '23', '25', '26'))
+totals_per_study <- cell_counts %>%
+  group_by(study) %>%
+  summarize(Total_Count = sum(Freq))
+
+cell_counts <- cell_counts %>%
+  left_join(totals_per_study, by = "study")
+cell_counts$Proportion <- cell_counts$Freq / cell_counts$Total_Count
+cell_counts$gestation <- factor(cell_counts$gestation, levels = c('8', '9','10', '10.5', '11', '12', '13', '14', '16', '17', '18', '19', '20', '22', '23', '25', '26'))
+filtered_data <- filter(cell_counts, Freq > 0)
+
+# Plotting
+ggplot(filtered_data, aes(x = gestation, y = study, size = Proportion)) +
+  geom_point(aes(color = Freq)) +
+  labs(x = "Gestation week", y = "Author", size = "Proportion") +
+  ggtitle("") +
+  scale_size_continuous(name = "Proportion", range = c(3, 13),limits = c(0, 1), breaks = c(0.01, 0.1, 0.25, 0.50, 0.75, 1)) +
+  theme_classic() + 
+  scale_color_gradient(low = "slateblue2", high = "tomato1")+ theme(axis.text=element_text(size=12))

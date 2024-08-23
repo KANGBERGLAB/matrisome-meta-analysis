@@ -1,0 +1,259 @@
+```{r}
+
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia')
+
+merged_seurat <- subset (merged_seurat, subset = customclassif_merged %in% my_levels)
+```
+
+save (merged_seurat, file = 'subset_annotated_object_wo_eze.Rdata')
+
+```{r}
+Idents(merged_seurat) <- merged_seurat$customclassif_merged
+
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia')
+
+
+merged_seurat@active.ident <- factor(x = merged_seurat@active.ident, levels = my_levels)
+
+```
+
+
+```{r}
+colpal <- c ("#C7EBB1", "#FFD5FF", "#81B1DE", "#CA2F40", "#DEB0B0", "#C1D4E6", "#34854D", "#FCA594", "#C58862", "#7F517D", "#33608C")
+```
+
+```{r}
+#merged_seurat[["RNA"]] <- JoinLayers(merged_seurat[["RNA"]])
+
+AverageExpression(
+  merged_seurat,
+  assays = NULL,
+  features = "HOPX",
+  return.seurat = FALSE,
+  group.by = "ident",
+  add.ident = NULL,
+  layer = "data"
+)
+
+hopx_seurat <- subset (merged_seurat, subset = HOPX > 2)
+```
+
+```{r}
+Gal_Pos <- subset(hopx_seurat, subset = LGALS3 > 0.5)
+table (Gal_Pos$customclassif_merged)
+
+hopx_seurat@meta.data$galpos <-
+  ifelse(
+    rownames(hopx_seurat@meta.data) %in% colnames(Gal_Pos),
+    "Gal3_pos",
+    "Gal3_neg"
+  )
+
+```
+
+
+```{r}
+celltype_df <- data.frame(table(Gal_Pos$customclassif_merged))
+
+# Calculate percentage
+celltype_df$percentage <- celltype_df$Freq / sum(celltype_df$Freq) * 100
+celltype_df$pct <- round (celltype_df$percentage, digit =1)
+
+
+pie(celltype_df$percentage, labels = paste (celltype_df$Var1, sep = ' ', celltype_df$pct, '%'),
+    main = "LGALS3 high cell types")
+
+top_n <- 3
+df_top <- celltype_df %>% 
+  arrange(desc(percentage)) %>% 
+  slice(1:top_n)
+
+# Identify and aggregate the "others"
+df_others <- celltype_df %>% 
+  arrange(desc(percentage)) %>% 
+  slice((top_n + 1):n()) %>% 
+  summarise(Var1 = "others", percentage = sum(percentage))
+
+# Combine the top 3 and "others"
+celltype_df <- bind_rows(df_top, df_others)
+celltype_df$pct <- round (celltype_df$percentage, digit =1)
+
+pie(celltype_df$percentage, labels = paste (celltype_df$Var1, sep = ' ', celltype_df$pct, '%'),
+    main = "LGALS3 high cell types")
+```
+
+
+
+
+```{r}
+study_cells <- which(rownames(merged_seurat@meta.data) %in% colnames(Gal_Pos))
+  
+gal_hopx_plot <- DimPlot(merged_seurat, label = FALSE,
+                  cells.highlight = study_cells,
+                  cols.highlight = 'deeppink1',
+                  pt.size = 0.1,
+                  sizes.highlight = 0.05,
+                  cols = "grey",
+                  raster = FALSE) + NoLegend() + ggtitle("") + NoAxes()
+
+```
+
+
+
+```{r}
+gal_df <- data.frame(table(hopx_seurat$galpos))
+
+# Calculate percentage
+gal_df$percentage <- gal_df$Freq / sum(gal_df$Freq) * 100
+gal_df$pct <- round (gal_df$percentage, digit =1)
+
+
+pie(gal_df$percentage, labels = paste (gal_df$Var1, sep = ' ', gal_df$pct, '%'),
+    main = "Proportion of LGALS3+ cells",
+    col = c("tomato1", "slateblue1"))
+
+```
+
+```{r}
+celltype_df <- data.frame(table(hopx_seurat$customclassif_merged))
+
+# Calculate percentage
+celltype_df$percentage <- celltype_df$Freq / sum(celltype_df$Freq) * 100
+celltype_df$pct <- round (celltype_df$percentage, digit =1)
+
+
+pie(celltype_df$percentage, labels = paste (celltype_df$Var1, sep = ' ', celltype_df$pct, '%'),
+    main = "HOPX+ cell types")
+
+```
+
+
+```{r}
+#hopx_seurat[["RNA"]] <- JoinLayers(hopx_seurat[["RNA"]])
+
+pseudo_seurat <- AggregateExpression(hopx_seurat, assays = "RNA", return.seurat = T, group.by = c("study", "gestation", "galpos"))
+pseudo_seurat <- NormalizeData(pseudo_seurat, normalization.method="RC", scale.factor=1e6)
+Idents(pseudo_seurat) <- pseudo_seurat$galpos
+
+hopx_markers <- FindMarkers(pseudo_seurat, ident.1 = "Gal3-pos", ident.2 = "Gal3-neg")
+```
+
+```{r}
+hopx_markers <- subset (hopx_markers, avg_log2FC > 1 | avg_log2FC < -1)
+hopx_markers <- subset (hopx_markers, p_val < 0.05)
+write.csv(hopx_markers, file = "C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/paper1/new/fig4_macrogliogenesis/hopx_subset_sc/gal_cell_in_hopx_markers.csv")
+
+
+heatmap <- hopx_markers [1:25,]
+row_ha = rowAnnotation("LGALS3+ HOPX+" = anno_barplot(heatmap$pct.1),
+                       "LGALS3- HOPX+"= anno_barplot(heatmap$pct.2),
+                       width = unit(10, "cm"))
+
+ht1 <- Heatmap(heatmap$avg_log2FC,
+                name = "Log2FC",
+                cluster_rows = TRUE, 
+                row_labels = rownames(heatmap), 
+                right_annotation = row_ha,
+                width = unit(1, "cm"),
+               column_title = " ",
+               col=colorRamp2(c(-8, 0, 8), c("blue", "white", "red"))
+)
+
+ht1
+```
+
+```{r}
+Idents(merged_seurat) <-merged_seurat$customclassif_merged
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia')
+merged_seurat@active.ident <- factor(x = merged_seurat@active.ident, levels = my_levels)
+
+DotPlot(merged_seurat, features = heatmap$genes)
+```
+
+```{r}
+DotPlot(merged_seurat, features = c("ARMC3", "GDPD2", "CDK1", "BIRC5", "PBK", "SPON2"), cols = "RdBu")+ scale_size_continuous(range = c(0, 8), limits = c(0, 90), breaks = c(10, 30, 50, 70, 90))
+```
+
+
+```{r}
+matrisome <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/Hs_Matrisome_Masterlist.csv", header = T, sep = ',')
+matrisome_list <- matrisome$Gene_Symbol
+
+hopx_markers$genes <- rownames(hopx_markers)
+
+hopx_mat_markers <- subset (hopx_markers, genes %in% matrisome_list)
+
+write.csv(hopx_mat_markers, file = "C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/paper1/new/fig4_macrogliogenesis/hopx_subset_sc/gal_cell_in_hopx_mat_arkers.csv")
+
+
+heatmap <- hopx_mat_markers [1:20,]
+row_ha = rowAnnotation("LGALS3+ HOPX+" = anno_barplot(heatmap$pct.1),
+                       "LGALS3- HOPX+"= anno_barplot(heatmap$pct.2),
+                       width = unit(10, "cm"))
+
+ht1 <- Heatmap(heatmap$avg_log2FC,
+                name = "Log2FC",
+                cluster_rows = TRUE, 
+                row_labels = rownames(heatmap), 
+                right_annotation = row_ha,
+                width = unit(1, "cm"),
+               column_title = " ",
+               col=colorRamp2(c(-8, 0, 8), c("blue", "white", "red"))
+               )
+
+ht1
+```
+
+```{r}
+DotPlot(merged_seurat, features = heatmap$genes)
+```
+
+
+```{r}
+top_10_highest <- hopx_markers[order(-hopx_markers$avg_log2FC), ][1:10, ]
+top_10_lowest <- hopx_markers[order(hopx_markers$avg_log2FC), ][1:10, ]
+result <- rbind(top_10_highest, top_10_lowest)
+
+row_ha = rowAnnotation("LGALS3+ HOPX+" = anno_barplot(result$pct.1),
+                       "LGALS3- HOPX+"= anno_barplot(result$pct.2),
+                       width = unit(10, "cm"))
+
+ht1 <- Heatmap(result$avg_log2FC,
+                name = "Log2FC",
+                cluster_rows = TRUE, 
+                row_labels = rownames(result), 
+                right_annotation = row_ha,
+                width = unit(1, "cm"),
+               column_title = " ")
+
+ht1
+```
+
+```{r}
+DotPlot(merged_seurat, features = result$genes)
+```
+
+```{r}
+top_10_highest <- hopx_mat_markers[order(-hopx_mat_markers$avg_log2FC), ][1:10, ]
+top_10_lowest <- hopx_mat_markers[order(hopx_mat_markers$avg_log2FC), ][1:10, ]
+result <- rbind(top_10_highest, top_10_lowest)
+
+row_ha = rowAnnotation("LGALS3+ HOPX+" = anno_barplot(result$pct.1),
+                       "LGALS3- HOPX+"= anno_barplot(result$pct.2),
+                       width = unit(10, "cm"))
+
+ht1 <- Heatmap(result$avg_log2FC,
+                name = "Log2FC",
+                cluster_rows = TRUE, 
+                row_labels = rownames(result), 
+                right_annotation = row_ha,
+                width = unit(1, "cm"),
+               column_title = " ")
+
+ht1
+```
+
+
+```{r}
+DotPlot(merged_seurat, features = result$genes)
+```

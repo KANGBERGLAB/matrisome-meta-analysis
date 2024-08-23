@@ -1,0 +1,238 @@
+```{r}
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia')
+merged_seurat <- subset (merged_seurat, customclassif_merged %in% my_levels)
+```
+
+
+
+```{r}
+merged_seurat[["RNA"]] <- JoinLayers(merged_seurat[["RNA"]])
+```
+
+
+
+
+```{r}
+Idents(merged_seurat) <- merged_seurat$customclassif_merged
+
+#avgexp = AverageExpression(merged_seurat, assays = "RNA", return.seurat = T, add.ident = 'Genotype')
+
+pseudo_seurat <- AggregateExpression(merged_seurat, assays = "RNA", return.seurat = T, group.by ="customclassif_merged")
+pseudo_seurat <- subset (pseudo_seurat, customclassif_merged != "Microglia")
+```
+
+
+```{r}
+pseudo_seurat <- NormalizeData(pseudo_seurat, normalization.method="RC", scale.factor=1e6)
+
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.', 'Microglia')
+
+
+pseudo_mat <- GetAssayData(object = pseudo_seurat, assay = "RNA")
+
+print(colSums(pseudo_mat))
+```
+
+
+#before normalisation
+print(colSums(pseudo_seurat$RNA))
+       vRG        oRG        tRG        IPC    Imm. PN        CPN  DA neuron    GABA IN        OPC     Astro.  Microglia      Endo. 
+ 553247239  337048960   24520510  498668230 1109080009 2217754362  528702807  957014582   83065208  140444317   66455667  113631867 
+   Unknown 
+   2512300 
+
+
+
+
+```{r}
+org_seurat <- subset (merged_seurat, subset = customclassif_merged == "oRG")
+```
+
+```{r}
+AverageExpression(
+  merged_seurat,
+  assays = NULL,
+  features = "LGALS3",
+  return.seurat = FALSE,
+  group.by = "ident",
+  add.ident = NULL,
+  layer = "data"
+)
+
+# oRG avg_LGALS3 = 1.739
+
+
+Gal_Pos <- subset(org_seurat, subset = LGALS3 < 0.5)
+
+org_seurat@meta.data$galpos <-
+  ifelse(
+    rownames(org_seurat@meta.data) %in% colnames(Gal_Pos),
+    "Gal3_neg",
+    "Gal3_pos"
+  )
+
+Idents(org_seurat) <- org_seurat$galpos
+table(org_seurat$galpos)
+AverageExpression(
+    org_seurat,
+    assays = NULL,
+    features = "LGALS3",
+    return.seurat = FALSE,
+    group.by = "ident",
+    add.ident = NULL,
+    layer = "data"
+)
+```
+
+```{r}
+merged_seurat2 <- merged_seurat
+
+merged_seurat2@meta.data$gal_celltype <-
+  ifelse(
+     colnames(merged_seurat2) %in% rownames(org_seurat@meta.data),
+    org_seurat$galpos,
+    merged_seurat$customclassif_merged
+  )
+```
+
+```{r}
+merged_seurat2[["RNA"]] <- JoinLayers(merged_seurat2[["RNA"]])
+
+Idents(merged_seurat2) <- merged_seurat2$gal_celltype
+
+pseudo_seurat <- AggregateExpression(merged_seurat2, assays = "RNA", return.seurat = T, group.by ="gal_celltype")
+Idents(pseudo_seurat) <- pseudo_seurat$gal_celltype
+pseudo_seurat <- subset(pseudo_seurat, subset = gal_celltype != "Microglia")
+pseudo_seurat <- subset(pseudo_seurat, subset = gal_celltype != "Gal3-neg")
+```
+
+
+```{r}
+pseudo_seurat <- NormalizeData(pseudo_seurat, normalization.method="RC", scale.factor=1e6)
+pseudo_mat <- GetAssayData(object = pseudo_seurat, assay = "RNA")
+
+print(colSums(pseudo_mat))
+```
+
+```{r}
+pseudo_seurat2 <- AggregateExpression(merged_seurat2, assays = "RNA", return.seurat = T, group.by =c ("gal_celltype","gestation","study"))
+
+pseudo_seurat2 <- NormalizeData(pseudo_seurat2, normalization.method="RC", scale.factor=1e6)
+
+Idents(pseudo_seurat2) <- pseudo_seurat2$gal_celltype
+gal.all.markers <- FindAllMarkers(pseudo_seurat2, only.pos = T)
+gal.all.markers1 <- subset (gal.all.markers, subset = pct.1 > 0.5 & avg_log2FC > 1 & p_val_adj <0.05)
+gal.all.markers <- subset (gal.all.markers1, subset = cluster != "Microglia")
+
+
+top10 <- gal.all.markers %>%
+  group_by(cluster) %>%
+  top_n(10, avg_log2FC)
+```
+
+```{r}
+colpal <- c ("#C7EBB1", "#FFD5FF", "#81B1DE", "#CA2F40", "#DEB0B0", "#C1D4E6", "#34854D", "#FCA594", "#C58862", "#7F517D", "#33608C", "white", "grey")
+
+mat<- pseudo_mat[c(top10$gene, "LGALS3"), ] %>% as.matrix()
+mat<- t(scale(t(mat)))
+head(mat)
+
+cluster_anno<- colnames(pseudo_seurat$RNA)
+
+
+myCol <- colorRampPalette(c('dodgerblue', 'black', 'yellow'))(50)
+myBreaks <- seq(-2, 2, length.out = 50)
+
+gal_pos_mat_ht <- Heatmap(mat, name = "Expression",  
+        column_split = factor(cluster_anno, levels = cluster_anno),
+        cluster_columns = TRUE,
+        show_column_dend = TRUE,
+        cluster_column_slices = TRUE,
+        column_title_gp = gpar(fontsize = 8),
+        column_gap = unit(0.5, "mm"),
+        cluster_rows = TRUE,
+        show_row_dend = TRUE,
+        col = colorRamp2(myBreaks, myCol),
+        row_names_gp = gpar(fontsize = 8),
+        column_title_rot = 90,
+        top_annotation = HeatmapAnnotation(foo = anno_block(gp = gpar(fill = colpal))),
+        show_column_names = FALSE,
+        use_raster = TRUE)
+```
+
+```{r}
+top5 <- gal.all.markers %>%
+  group_by(cluster) %>%
+  top_n(5, avg_log2FC)
+
+colpal <- c ("#C7EBB1", "#FFD5FF", "#81B1DE", "#CA2F40", "#DEB0B0", "#C1D4E6", "#34854D", "#FCA594", "#C58862", "#7F517D", "#33608C", "white", "grey")
+
+mat<- pseudo_mat[c(top5$gene, "LGALS3"), ] %>% as.matrix()
+mat<- t(scale(t(mat)))
+head(mat)
+
+cluster_anno<- colnames(pseudo_seurat$RNA)
+
+
+myCol <- colorRampPalette(c('dodgerblue', 'black', 'yellow'))(50)
+myBreaks <- seq(-2, 2, length.out = 50)
+
+gal_pos_mat_ht5 <- Heatmap(mat, name = "Expression",  
+        column_split = factor(cluster_anno, levels = cluster_anno),
+        cluster_columns = TRUE,
+        show_column_dend = TRUE,
+        cluster_column_slices = TRUE,
+        column_title_gp = gpar(fontsize = 8),
+        column_gap = unit(0.5, "mm"),
+        cluster_rows = TRUE,
+        show_row_dend = TRUE,
+        col = colorRamp2(myBreaks, myCol),
+        row_names_gp = gpar(fontsize = 8),
+        column_title_rot = 90,
+        top_annotation = HeatmapAnnotation(foo = anno_block(gp = gpar(fill = colpal))),
+        show_column_names = FALSE,
+        use_raster = TRUE)
+```
+
+
+
+
+
+```{r}
+my_levels <- c('vRG', 'Gal3-pos', 'tRG', 'IPC', 'Imm. PN', 'CPN', 'DA neuron', 'GABA IN', 'OPC', 'Astro.')
+mark.wo.gal <- subset(gal.all.markers, cluster %in% my_levels)
+top10 <- mark.wo.gal %>%
+  group_by(cluster) %>%
+  top_n(10, avg_log2FC)
+```
+
+
+```{r}
+colpal <- c ("#C7EBB1", "#FFD5FF", "#81B1DE", "#CA2F40", "#DEB0B0", "#C1D4E6", "#34854D", "#FCA594", "#C58862", "#7F517D", "#33608C", "white", "grey")
+
+mat<- pseudo_mat[c(top10$gene, "LGALS3"), ] %>% as.matrix()
+mat<- t(scale(t(mat)))
+head(mat)
+
+cluster_anno<- colnames(pseudo_seurat$RNA)
+
+
+myCol <- colorRampPalette(c('dodgerblue', 'black', 'yellow'))(50)
+myBreaks <- seq(-2, 2, length.out = 50)
+
+wo_gal_mark_gal_pos_mat_ht <- Heatmap(mat, name = "Expression",  
+        column_split = factor(cluster_anno, levels = cluster_anno),
+        cluster_columns = TRUE,
+        show_column_dend = TRUE,
+        cluster_column_slices = TRUE,
+        column_title_gp = gpar(fontsize = 8),
+        column_gap = unit(0.5, "mm"),
+        cluster_rows = TRUE,
+        show_row_dend = TRUE,
+        col = colorRamp2(myBreaks, myCol),
+        row_names_gp = gpar(fontsize = 8),
+        column_title_rot = 90,
+        top_annotation = HeatmapAnnotation(foo = anno_block(gp = gpar(fill = colpal))),
+        show_column_names = FALSE,
+        use_raster = TRUE)
+```

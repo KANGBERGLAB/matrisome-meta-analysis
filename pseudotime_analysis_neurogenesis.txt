@@ -1,0 +1,205 @@
+```{r}
+study_cells <- which(merged_seurat$customclassif_merged == "vRG" & merged_seurat$gestation == "10")
+  
+gw10_plot <- DimPlot(merged_seurat, label = FALSE, group.by = "customclassif_merged",
+                  cells.highlight = study_cells,
+                  cols.highlight = "#F8766D",
+                  raster = FALSE,
+                  sizes.highlight = 0.2) + NoLegend() + NoAxes() + ggtitle(" ")
+
+study_cells <- which(merged_seurat$customclassif_merged == "vRG" & merged_seurat$gestation == "12")
+  
+gw12_plot <- DimPlot(merged_seurat, label = FALSE, group.by = "customclassif_merged",
+                  cells.highlight = study_cells,
+                  cols.highlight = "#E68613",
+                  raster = FALSE,
+                  sizes.highlight = 0.2) + NoLegend() + NoAxes() + ggtitle(" ")
+
+gw10_plot +gw12_plot
+```
+
+
+```{r}
+replicated <- c("10", "12", "16", "18", "19", "22", "23", "26")
+dup_seurat <- subset(merged_seurat, subset = gestation %in% replicated)
+
+Idents(dup_seurat) <- dup_seurat$seurat_clusters
+neurolin <- c("vRG", "oRG", "tRG", "IPC", "Imm. PN", "CPN")
+neurogen <- subset (dup_seurat, subset = customclassif_merged %in% neurolin)
+```
+
+
+
+## Transfer data to CDS assay
+```{r}
+gc()
+library(monocle3)
+library(SeuratWrappers)
+cds <- as.cell_data_set(neurogen)
+cds <- estimate_size_factors(cds)
+cds
+```
+
+```{r}
+gc()
+recreate.partition <- c(rep(1,length(cds@colData@rownames)))
+names(recreate.partition) <- cds@colData@rownames
+recreate.partition <- as.factor(recreate.partition)
+cds@clusters$UMAP$partitions <- recreate.partition
+```
+
+```{r}
+list_cluster <- merged_seurat@active.ident
+cds@clusters$UMAP$clusters <- list_cluster
+merged_seurat@reductions$umap@cell.embeddings
+```
+
+```{r}
+cluster.before.trajectory <- plot_cells(cds,
+           color_cells_by = 'cluster',
+           label_groups_by_cluster = FALSE,
+           group_label_size = 5) +
+  theme(legend.position = "right")
+
+cluster.names <- plot_cells(cds,
+           color_cells_by = "customclassif_merged",
+           label_groups_by_cluster = FALSE,
+           group_label_size = 5) +
+  theme(legend.position = "right")
+
+cluster.before.trajectory | cluster.names
+```
+
+
+```{r}
+gc()
+cds <- learn_graph(cds, use_partition = FALSE)
+colpal <- c ("#C7EBB1", "#FFD5FF", "#81B1DE", "#CA2F40", "#DEB0B0", "#C1D4E6")
+plot_cells(cds,
+           color_cells_by = 'customclassif_merged',
+           label_groups_by_cluster = FALSE,
+           label_branch_points = FALSE,
+           label_roots = TRUE,
+           label_leaves = TRUE,
+           group_label_size = 5)
+
+gc()
+```
+
+```{r}
+cds <- order_cells(cds, reduction_method = 'UMAP', root_cells = colnames(cds[,clusters(cds) == '23']))
+plot_cells(cds,
+           color_cells_by = 'pseudotime',
+           label_groups_by_cluster = FALSE,
+           label_branch_points = FALSE,
+           label_roots = TRUE,
+           label_leaves = FALSE)
+```
+```{r}
+cds$monocle3_pseudotime <- pseudotime(cds)
+data.pseudo <- as.data.frame(colData(cds))
+
+colpal <- c ("#C7EBB1", "#FFD5FF", "#81B1DE", "#CA2F40", "#DEB0B0", "#C1D4E6")
+
+ggplot(data.pseudo, aes(monocle3_pseudotime, reorder(customclassif_merged, monocle3_pseudotime, median), fill = customclassif_merged)) +
+  geom_boxplot() +
+  theme_clean()+
+  scale_fill_manual(values = colpal) +
+  ylab ("") +
+  xlab ("Pseudotime") +
+  NoLegend()
+  
+
+ggplot(data.pseudo, aes(monocle3_pseudotime, reorder(seurat_clusters, monocle3_pseudotime, median), fill = seurat_clusters)) +
+  geom_boxplot() +
+  theme_clean() +
+  ylab ("") +
+  xlab ("Pseudotime")
+```
+## Finding gene expression changes over time
+```{r}
+deg_rgc <- graph_test(cds, neighbor_graph = 'principal_graph', cores = 4)
+deg_rgc %>% 
+  arrange(q_value) %>% 
+  filter(status == 'OK') %>% 
+  head()
+```
+
+```{r}
+matrisome <- read.table("./Hs_Matrisome_Masterlist.csv", header = T, sep = ',')
+matrisome_list <- matrisome$Gene_Symbol
+```
+
+```{r}
+deg_rgc$genes <- rownames(deg_rgc)
+deg_rgc <- deg_rgc %>% 
+  arrange(q_value) %>% 
+  filter(status == 'OK') %>%
+  filter(genes %in% matrisome_list)
+```
+
+
+```{r}
+rowData(cds)$gene_short_name <- row.names(rowData(cds))
+
+head(deg_rgc, error=FALSE, message=FALSE, warning=FALSE)
+
+deg_ids <- rownames(subset(deg_rgc[order(deg_rgc$morans_I, decreasing = TRUE),], q_value < 0.05))
+
+int_deg_ids <- intersect(deg_ids, matrisome_list)
+
+plot_cells(cds,
+           genes=head(int_deg_ids),
+           show_trajectory_graph = FALSE,
+           label_cell_groups = FALSE,
+           label_leaves = FALSE)
+```
+
+
+```{r}
+fData(cds)$gene_short_name <- rownames(fData(cds))
+
+
+plot_list <- list()
+
+for (i in int_deg_ids) {
+  my_genes <- row.names(subset(fData(cds), gene_short_name %in% c(i))) 
+  cds_subset <- cds[my_genes,]
+  
+  expression_below_cutoff <-logcounts(cds_subset)[i,] > 0.1
+  
+  cds_pp <- cds_subset[, expression_below_cutoff]
+  
+  plot <- plot_genes_in_pseudotime(cds_pp, color_cells_by = "monocle3_pseudotime" ) + ylim(0,2)
+  
+  plot_list [[i]] <- plot
+}
+
+
+plot_list
+```
+
+
+```{r}
+my_levels <- c('vRG', 'oRG', 'tRG', 'IPC', 'Imm. PN', 'CPN')
+
+
+neurogen$customclassif_merged <- factor(x = neurogen$customclassif_merged, levels = my_levels)
+
+DotPlot(neurogen, features = int_deg_ids, cols = 'RdBu', group.by = "customclassif_merged")
+```
+
+
+```{r}
+plot_grid(plot_list$TNFSF10, plot_list$ACAN, plot_list$IL1B, ncol =2)
+plot_grid(plot_list$CLEC7A, plot_list$FGF23, plot_list$NTN5, plot_list$HPSE, ncol =2)
+```
+
+```{r}
+DotPlot(neurogen, features = c("TNFSF10", "ACAN", "IL1B", "CLEC7A","FGF23", "NTN5", "HPSE"), cols = 'RdBu', group.by = "customclassif_merged")+ scale_size_continuous(range = c(1, 8),limits = c(0, 100), breaks = c(1, 10, 25, 50, 75, 100))
+```
+
+## Transfer the analysis back to seurat object
+```{r}
+merged_seurat$pseudotime <- pseudotime(cds)
+```

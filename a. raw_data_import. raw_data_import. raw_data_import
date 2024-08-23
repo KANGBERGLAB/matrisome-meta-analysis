@@ -1,0 +1,100 @@
+
+-------------Bhaduri et al.
+counts <- readMM("~/bhaduri_matrix.mtx")
+genes <- read.table("~/bhaduri_features.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("~/bhaduri_barcodes.tsv", header = FALSE, sep = "\t")
+rownames(counts) <- genes$V1
+colnames(counts) <- barcodes$V1
+meta <- read.table("~/bhaduri_meta.tsv", header = TRUE, sep = "\t")
+
+bhaduri <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+bhaduri@meta.data$author_celltype <- meta$CellType
+bhaduri@meta.data$gestation <- meta$Age
+bhaduri@meta.data$region <- meta$Area
+
+regions <- c ('motor', 'PFC')
+bhaduri <- subset (bhaduri, subset = region == regions)
+table (bhaduri$region)
+table (bhaduri$gestation)
+rm (regions)
+
+bhaduri[["percent.mt"]] <- PercentageFeatureSet(bhaduri, pattern = "^MT-")
+bhaduri <- subset (bhaduri, subset = nFeature_RNA > 200 &
+                 nFeature_RNA < 8000 &
+                 percent.mt < 10)
+gc()
+
+
+-------------van Brugggen et al.
+counts <- read.table(gzfile("~/bruggen_exprMatrix.tsv.gz"), header = T, sep = '\t')
+features <- counts$gene
+counts <- counts [,-1]
+rownames(counts) <- features
+meta <- read.table("~/bruggen_meta.tsv", header = TRUE, sep = "\t")
+
+bruggen <- CreateSeuratObject(counts = counts, project = "bruggen", min.cells = 3, min.features = 200)
+bruggen@meta.data$author_celltype <- meta$Clusters
+bruggen@meta.data$gestation <- meta$Age
+
+gestation <- bruggen$gestation
+cleaned_values <- as.numeric(gsub("PCW ", "", gestation)) + 2
+bruggen$gestation <- cleaned_values
+
+bruggen[["percent.mt"]] <- PercentageFeatureSet(bruggen, pattern = "^MT-")
+bruggen <- subset (bruggen, subset = nFeature_RNA > 200 &
+                 nFeature_RNA < 7500 &
+                 percent.mt < 10)
+gc()
+
+-------------Cameron et al.
+counts <- read.table(gzfile("~/cameron_2022_snRNAseq_FC_raw_count_gEX_matrix.txt.gz"), header = T, sep = '')
+meta <- read.table(gzfile("~/cameron_2022_snRNAseq_FC_metadata.txt.gz"), header = T, sep = '')
+meta$Age <- "16"
+
+cameron <- CreateSeuratObject(counts = counts, project = "cameron", min.cells = 3, min.features = 200)
+cameron@meta.data$gestation <- meta$Age
+
+cameron[["percent.mt"]] <- PercentageFeatureSet(cameron, pattern = "^MT-")
+cameron <- subset (cameron, subset = nFeature_RNA > 200 &
+                 nFeature_RNA < 7500 &
+                 percent.mt < 10)
+
+-------------Trevino et al.
+counts <- read.table("~/GSE162170_rna_counts.tsv",sep = '\t', header = TRUE)
+meta <- as.data.frame(read.delim ("~/GSE162170_rna_cell_metadata.txt"))
+converted_id <- read.table("~/trevino_features_gene_symbol.csv",sep = ',', header = TRUE)
+rownames(counts) <- converted_id$gene_id
+
+trevino <- CreateSeuratObject(counts = counts, project = "trevino", min.cells = 3, min.features = 200)
+
+gestation <- meta$Age
+cleaned_values <- as.numeric(gsub("pcw", "", gestation)) + 2
+
+trevino$gestation <- cleaned_values
+
+table(trevino$gestation)
+typeof(trevino$gestation)
+
+
+trevino[["percent.mt"]] <- PercentageFeatureSet(trevino, pattern = "^MT-")
+trevino <- subset (trevino, subset = nFeature_RNA > 200 &
+                 nFeature_RNA < 7500 &
+                 percent.mt < 20)
+gc()
+
+-------------Zhong et al.
+counts <- as.data.frame (read.table("~/Desktop/matrisome/zhong_2018_gw8_26/GSE104276_all_pfc_2394_UMI_count_NOERCC.xls"))
+zhong <- CreateSeuratObject(counts = counts, project = "zhong", min.cells = 3, min.features = 200)
+
+zhong$gestation <- ifelse(zhong$orig.ident == "GW08", 8,
+                          ifelse(zhong$orig.ident == "GW09", 9,
+                          ifelse(zhong$orig.ident == "GW10", 10,
+                          ifelse(zhong$orig.ident == "GW12", 12,
+                          ifelse(zhong$orig.ident == "GW13", 13,
+                          ifelse(zhong$orig.ident == "GW16", 16,
+                          ifelse(zhong$orig.ident == "GW19", 19,
+                          ifelse(zhong$orig.ident == "GW23", 23,
+                          ifelse(zhong$orig.ident == "GW26", 26,
+                                 NA)))))))))
+
+

@@ -1,0 +1,112 @@
+```{r}
+merged_seurat[["RNA"]] <- JoinLayers(merged_seurat[["RNA"]])
+
+AverageExpression(
+  merged_seurat,
+  assays = NULL,
+  features = "HOPX",
+  return.seurat = FALSE,
+  group.by = "ident",
+  add.ident = NULL,
+  layer = "data"
+)
+
+hopx_seurat <- subset (merged_seurat, subset = HOPX > 2)
+```
+
+```{r}
+Gal_Pos <- subset(hopx_seurat, subset = LGALS3 > 0.5)
+
+hopx_seurat@meta.data$galpos <-
+  ifelse(
+    rownames(hopx_seurat@meta.data) %in% colnames(Gal_Pos),
+    "Gal3_pos",
+    "Gal3_neg"
+  )
+
+```
+
+```{r}
+gal_df <- data.frame(table(hopx_seurat$galpos))
+
+# Calculate percentage
+gal_df$percentage <- gal_df$Freq / sum(gal_df$Freq) * 100
+gal_df$pct <- round (gal_df$percentage, digit =1)
+
+
+pie(gal_df$percentage, labels = paste (gal_df$Var1, sep = ' ', gal_df$pct, '%'),
+    main = "Proportion of LGALS3+ cells",
+    col = c("tomato1", "slateblue1"))
+
+```
+
+```{r}
+celltype_df <- data.frame(table(hopx_seurat$customclassif_merged))
+
+# Calculate percentage
+celltype_df$percentage <- celltype_df$Freq / sum(celltype_df$Freq) * 100
+celltype_df$pct <- round (celltype_df$percentage, digit =1)
+
+
+pie(celltype_df$percentage, labels = paste (celltype_df$Var1, sep = ' ', celltype_df$pct, '%'),
+    main = "HOPX+ cell types")
+
+```
+
+```{r}
+hopx_seurat[["RNA"]] <- JoinLayers(hopx_seurat[["RNA"]])
+
+pseudo_seurat <- AggregateExpression(hopx_seurat, assays = "RNA", return.seurat = T, group.by = c("study", "gestation", "galpos"))
+pseudo_seurat <- NormalizeData(pseudo_seurat, normalization.method="RC", scale.factor=1e6)
+Idents(pseudo_seurat) <- pseudo_seurat$galpos
+
+hopx_markers <- FindMarkers(pseudo_seurat, ident.1 = "Gal3-pos", ident.2 = "Gal3-neg")
+```
+
+```{r}
+hopx_markers <- subset (hopx_markers, avg_log2FC > 1 | avg_log2FC < -1)
+write.csv(hopx_markers, file = "~/Desktop/matrisome/hopx_subset/gal_cell_in_hopx_markers.csv")
+
+heatmap <- hopx_markers [1:20,]
+row_ha = rowAnnotation("LGALS3+ HOPX+" = anno_barplot(heatmap$pct.1),
+                       "LGALS3- HOPX+"= anno_barplot(heatmap$pct.2),
+                       width = unit(10, "cm"))
+
+ht0 <- Heatmap(heatmap$avg_log2FC,
+                name = "Log2FC",
+                cluster_rows = TRUE, 
+                row_labels = rownames(heatmap), 
+                right_annotation = row_ha,
+                width = unit(1, "cm"),
+               column_title = " ")
+
+ht0
+```
+
+```{r}
+matrisome <- read.table("~/Desktop/matrisome/Hs_Matrisome_Masterlist.csv", header = T, sep = ',')
+matrisome_list <- matrisome$Gene_Symbol
+
+hopx_markers$genes <- rownames(hopx_markers)
+
+hopx_mat_markers <- subset (hopx_markers, genes %in% matrisome_list)
+
+write.csv(hopx_mat_markers, file = "~/Desktop/matrisome/hopx_subset/gal_cell_in_hopx_mat_markers.csv")
+
+
+heatmap <- hopx_mat_markers [1:20,]
+row_ha = rowAnnotation("LGALS3+ HOPX+" = anno_barplot(heatmap$pct.1),
+                       "LGALS3- HOPX+"= anno_barplot(heatmap$pct.2),
+                       width = unit(10, "cm"))
+
+ht0 <- Heatmap(heatmap$avg_log2FC,
+                name = "Log2FC",
+                cluster_rows = TRUE, 
+                row_labels = rownames(heatmap), 
+                right_annotation = row_ha,
+                width = unit(1, "cm"),
+               column_title = " ")
+
+ht0
+```
+

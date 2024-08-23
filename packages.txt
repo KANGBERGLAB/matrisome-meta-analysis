@@ -1,0 +1,4 @@
+lapply(c("biomaRt","annotables","org.Hs.eg.db", "EnsDb.Hsapiens.v86", "tidyverse"), library, character.only = T)
+lapply(c("BiocManager","devtools","Seurat", "Matrix", "patchwork", "ggplot2", "scuttle", "DropletUtils", "uwot", "ggraph", "reshape2", "scran", "dplyr", "stringr", 
+  "ComplexHeatmap", "tidyr", "multtest", "metap", "generics", "igraph", 'ggpubr', 'ggprism', 'rstatix', 'ggsignif', 'HGNChelper', 'cowplot', 'colorRamp2', 'scales', 
+  'CellChat',"VennDiagram","plotly", "networkD3", "ggrepel", "RColorBrewer", "wesanderson", "ggthemes","DESeq2", "MAST"), library, character.only = T)
