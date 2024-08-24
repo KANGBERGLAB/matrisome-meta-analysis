@@ -20,7 +20,6 @@ rm (regions)
 
 bhaduri[["percent.mt"]] <- PercentageFeatureSet(bhaduri, pattern = "^MT-")
 bhaduri <- subset (bhaduri, subset = nFeature_RNA > 200 &
-                 nFeature_RNA < 8000 &
                  percent.mt < 10)
 gc()
 
@@ -56,7 +55,6 @@ cameron@meta.data$gestation <- meta$Age
 
 cameron[["percent.mt"]] <- PercentageFeatureSet(cameron, pattern = "^MT-")
 cameron <- subset (cameron, subset = nFeature_RNA > 200 &
-                 nFeature_RNA < 7500 &
                  percent.mt < 10)
 
 -------------Trevino et al.
@@ -78,8 +76,7 @@ typeof(trevino$gestation)
 
 trevino[["percent.mt"]] <- PercentageFeatureSet(trevino, pattern = "^MT-")
 trevino <- subset (trevino, subset = nFeature_RNA > 200 &
-                 nFeature_RNA < 7500 &
-                 percent.mt < 20)
+                 percent.mt < 10)
 gc()
 
 -------------Zhong et al.
@@ -97,4 +94,6 @@ zhong$gestation <- ifelse(zhong$orig.ident == "GW08", 8,
                           ifelse(zhong$orig.ident == "GW26", 26,
                                  NA)))))))))
 
-
+zhong[["percent.mt"]] <- PercentageFeatureSet(zhong, pattern = "^MT-")
+zhong <- subset (zhong, subset = nFeature_RNA > 200 &
+                 percent.mt < 10)
