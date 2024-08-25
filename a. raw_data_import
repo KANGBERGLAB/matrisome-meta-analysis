@@ -1,5 +1,5 @@
 
--------------Bhaduri et al.
+-------------Bhaduri et al. (mixed cell population)
 counts <- readMM("~/bhaduri_matrix.mtx")
 genes <- read.table("~/bhaduri_features.tsv", header = FALSE, sep = "\t")
 barcodes <- read.table("~/bhaduri_barcodes.tsv", header = FALSE, sep = "\t")
@@ -12,6 +12,7 @@ bhaduri@meta.data$author_celltype <- meta$CellType
 bhaduri@meta.data$gestation <- meta$Age
 bhaduri@meta.data$region <- meta$Area
 
+# subset regions of interest
 regions <- c ('motor', 'PFC')
 bhaduri <- subset (bhaduri, subset = region == regions)
 table (bhaduri$region)
@@ -25,7 +26,7 @@ bhaduri <- subset (bhaduri, subset = nFeature_RNA > 200 &
 gc()
 
 
--------------van Brugggen et al.
+-------------van Brugggen et al. (forebrain)
 counts <- read.table(gzfile("~/bruggen_exprMatrix.tsv.gz"), header = T, sep = '\t')
 features <- counts$gene
 counts <- counts [,-1]
@@ -46,7 +47,8 @@ bruggen <- subset (bruggen, subset = nFeature_RNA > 200 &
                  percent.mt < 10)
 gc()
 
--------------Cameron et al.
+-------------Cameron et al. (mixed population)
+#import only frontal cortex
 counts <- read.table(gzfile("~/cameron_2022_snRNAseq_FC_raw_count_gEX_matrix.txt.gz"), header = T, sep = '')
 meta <- read.table(gzfile("~/cameron_2022_snRNAseq_FC_metadata.txt.gz"), header = T, sep = '')
 meta$Age <- "16"
@@ -59,7 +61,7 @@ cameron <- subset (cameron, subset = nFeature_RNA > 200 &
                  nFeature_RNA < 8000 &
                  percent.mt < 10)
 
--------------Trevino et al.
+-------------Trevino et al. (cerebral cortex)
 counts <- read.table("~/GSE162170_rna_counts.tsv",sep = '\t', header = TRUE)
 meta <- as.data.frame(read.delim ("~/GSE162170_rna_cell_metadata.txt"))
 converted_id <- read.table("~/trevino_features_gene_symbol.csv",sep = ',', header = TRUE)
@@ -82,7 +84,7 @@ trevino <- subset (trevino, subset = nFeature_RNA > 200 &
                  percent.mt < 10)
 gc()
 
--------------Zhong et al.
+-------------Zhong et al. (PFC)
 counts <- as.data.frame (read.table("~/Desktop/matrisome/zhong_2018_gw8_26/GSE104276_all_pfc_2394_UMI_count_NOERCC.xls"))
 zhong <- CreateSeuratObject(counts = counts, project = "zhong", min.cells = 3, min.features = 200)
 
