@@ -8,6 +8,12 @@ merged_seurat@meta.data <- separate(merged_seurat@meta.data,
                                     col = 'sample', 
                                     into = c('study', 'Barcode'), 
                                     sep = '_')
+
+merged_seurat <- subset(merged_seurat, subset =
+                          nCount_RNA < Inf &
+                          percent.mt < 10 & 
+                          nFeature_RNA < 8500)
+
 gc()
 
 split_by_study <- SplitObject(merged_seurat, split.by = "study")
