@@ -1,6 +1,6 @@
 ---------------------- Create a merged object
 gc()
-merged_seurat <- merge(bhaduri, y = c(bhaduri, bruggen, cameron, trevino, zhong),
+merged_seurat <- merge(bhaduri, y = c(bruggen, cameron, trevino, zhong),
       add.cell.ids = ls()[1:6],
       project = 'meta_analysis')
 merged_seurat$sample <- rownames(merged_seurat@meta.data)
