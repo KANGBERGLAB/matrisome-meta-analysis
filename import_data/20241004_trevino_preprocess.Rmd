@@ -1,16 +1,11 @@
----
-title: "trevino"
-output: html_document
-date: "2023-09-06"
----
 
 ```{r}
-counts <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/trevino_foetal_gw16_24/GSE162170_rna_counts.tsv",sep = '\t', header = TRUE)
-meta <- as.data.frame(read.delim ("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/trevino_foetal_gw16_24/GSE162170_rna_cell_metadata.txt"))
+counts <- read.table("./trevino_foetal_gw16_24/GSE162170_rna_counts.tsv",sep = '\t', header = TRUE)
+meta <- as.data.frame(read.delim ("./trevino_foetal_gw16_24/GSE162170_rna_cell_metadata.txt"))
 ```
 
 ```{r}
-converted_id <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/trevino_foetal_gw16_24/trevino_features2.csv",sep = ',', header = TRUE)
+converted_id <- read.table("./trevino_foetal_gw16_24/trevino_features2.csv",sep = ',', header = TRUE)
 rownames(counts) <- converted_id$gene_id
 ```
 
