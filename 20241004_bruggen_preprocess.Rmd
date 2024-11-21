@@ -1,0 +1,112 @@
+---
+title: "van_bruggen"
+output: html_document
+date: "2023-09-06"
+---
+```{r}
+counts <- read.table(gzfile("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bruggen_2021_pcw8_10/bruggen_exprMatrix.tsv.gz"), header = T, sep = '\t')
+
+features <- counts$gene
+counts <- counts [,-1]
+rownames(counts) <- features
+
+meta <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bruggen_2021_pcw8_10/bruggen_meta.tsv", header = TRUE, sep = "\t")
+```
+
+
+```{r}
+bruggen <- CreateSeuratObject(counts = counts, project = "bruggen", min.cells = 3, min.features = 200)
+
+bruggen@meta.data$gestation <- meta$Age
+table (bruggen$gestation)
+
+bruggen@meta.data$donor <- meta$Sample
+table (bruggen$donor)
+```
+
+
+```{r}
+gestation <- bruggen$gestation
+cleaned_values <- as.numeric(gsub("PCW ", "", gestation)) + 2
+
+bruggen$gestation <- cleaned_values
+
+table(bruggen$gestation)
+typeof(bruggen$gestation)
+
+rm(counts,features, meta,gestation,cleaned_values)
+```
+
+```{r}
+bruggen[["percent.mt"]] <- PercentageFeatureSet(bruggen, pattern = "^MT-")
+
+v1 <- VlnPlot(bruggen, features = c("nFeature_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v2 <- VlnPlot(bruggen, features = c("nCount_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v3 <- VlnPlot(bruggen, features = c("percent.mt"), 
+       pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+
+plot_grid(v1, v2, v3, ncol = 3)
+
+FeatureScatter(bruggen, feature1 = "nCount_RNA", feature2 = "percent.mt", group.by = "donor") +
+  geom_smooth(method = 'lm')
+FeatureScatter(bruggen, feature1 = "nCount_RNA", feature2 = "nFeature_RNA", group.by = "donor") +
+  geom_smooth(method = 'lm')
+```
+
+```{r}
+hist(bruggen$nCount_RNA)
+quantile(bruggen$nCount_RNA, probs = 0.975)
+quantile(bruggen$nCount_RNA, probs = 0.025)
+abline(v= quantile(bruggen$nCount_RNA, probs = 0.975), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(bruggen$nCount_RNA, probs = 0.025), col = 'red', lwd = 2, lty = 'dashed')
+hist(bruggen$nFeature_RNA)
+quantile(bruggen$nFeature_RNA, probs = 0.975)
+quantile(bruggen$nFeature_RNA, probs = 0.025)
+abline(v= quantile(bruggen$nFeature_RNA, probs = 0.975), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(bruggen$nFeature_RNA, probs = 0.025), col = 'red', lwd = 2, lty = 'dashed')
+hist(bruggen$percent.mt)
+abline(v= 10, col = 'red', lwd = 2, lty = 'dashed')
+```
+
+
+```{r}
+bruggen
+table (bruggen$gestation)
+table (bruggen$donor)
+```
+
+
+```{r}
+bruggen <- subset(bruggen, subset =
+                          percent.mt < 10 &  
+                          nCount_RNA > quantile(bruggen$nCount_RNA, probs = 0.025) &
+                          nCount_RNA < quantile(bruggen$nCount_RNA, probs = 0.975) &
+                          nFeature_RNA > quantile(bruggen$nFeature_RNA, probs = 0.025) &
+                          nFeature_RNA < quantile(bruggen$nFeature_RNA, probs = 0.975))
+table (bruggen$gestation)
+table (bruggen$donor)
+gc()
+
+bruggen
+```
+
+```{r}
+hist(bruggen$nCount_RNA, prob = TRUE, main = "Raw count distribution", xlab = "number of UMIs")
+
+g = log10(bruggen$nCount_RNA)
+m<-mean(g)
+std<-sqrt(var(g))
+
+hist(log10(bruggen$nCount_RNA), prob = TRUE, ylim = c(0,1.8), main = "log-transformed count distribution", xlab = "number of UMIs")
+curve(dnorm(x, mean=m, sd=std), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+rm(g, g2, m, std)
+
+gc()
+```

@@ -1,0 +1,111 @@
+---
+title: "zhong"
+output: html_document
+date: "2023-09-06"
+---
+
+```{r}
+counts <- as.data.frame (read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/zhong_2018_gw8_26/GSE104276_all_pfc_2394_UMI_count_NOERCC.xls"))
+
+meta <- read.csv("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/zhong_2018_gw8_26/GSE104276_meta.csv")
+
+counts <- counts[, colnames(counts) %in% meta$X]
+meta <- meta[match(colnames(counts), meta$X), ]
+
+zhong <- CreateSeuratObject(counts = counts, project = "zhong", min.cells = 3, min.features = 200)
+```
+
+
+```{r}
+gestation <- zhong$orig.ident
+
+table(gestation)
+typeof(gestation)
+```
+
+```{r}
+zhong$gestation <- ifelse(zhong$orig.ident == "GW08", 8,
+                          ifelse(zhong$orig.ident == "GW09", 9,
+                          ifelse(zhong$orig.ident == "GW10", 10,
+                          ifelse(zhong$orig.ident == "GW12", 12,
+                          ifelse(zhong$orig.ident == "GW13", 13,
+                          ifelse(zhong$orig.ident == "GW16", 16,
+                          ifelse(zhong$orig.ident == "GW19", 19,
+                          ifelse(zhong$orig.ident == "GW23", 23,
+                          ifelse(zhong$orig.ident == "GW26", 26,
+                                 NA)))))))))
+
+table(zhong$gestation)
+typeof(zhong$gestation)
+```
+
+```{r}
+meta$donor <- paste(meta$week, meta$pfc, sep = "_")
+zhong$donor <- meta$donor
+table(zhong$donor)
+```
+
+```{r}
+rm (counts, meta, gestation)
+```
+
+```{r}
+zhong[["percent.mt"]] <- PercentageFeatureSet(zhong, pattern = "^MT-")
+
+v1 <- VlnPlot(zhong, features = c("nFeature_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v2 <- VlnPlot(zhong, features = c("nCount_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v3 <- VlnPlot(zhong, features = c("percent.mt"), 
+       pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+
+v1
+v2
+v3
+
+FeatureScatter(zhong, feature1 = "nCount_RNA", feature2 = "percent.mt", group.by = "donor") +
+  geom_smooth(method = 'lm')
+FeatureScatter(zhong, feature1 = "nCount_RNA", feature2 = "nFeature_RNA", group.by = "donor") +
+  geom_smooth(method = 'lm')
+```
+
+```{r}
+hist(zhong$nCount_RNA, breaks = 500)
+quantile(zhong$nCount_RNA, probs = 0.99)
+quantile(zhong$nCount_RNA, probs = 0.01)
+abline(v= quantile(zhong$nCount_RNA, probs = 0.99), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(zhong$nCount_RNA, probs = 0.01), col = 'red', lwd = 2, lty = 'dashed')
+hist(zhong$nFeature_RNA)
+quantile(zhong$nFeature_RNA, probs = 0.99)
+quantile(zhong$nFeature_RNA, probs = 0.01)
+abline(v= quantile(zhong$nFeature_RNA, probs = 0.99), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(zhong$nFeature_RNA, probs = 0.01), col = 'red', lwd = 2, lty = 'dashed')
+hist(zhong$percent.mt)
+abline(v= 10, col = 'red', lwd = 2, lty = 'dashed')
+```
+
+
+```{r}
+zhong
+table (zhong$gestation)
+table (zhong$donor)
+```
+
+
+```{r}
+zhong <- subset(zhong, subset =
+                          percent.mt < 10 &  
+                          nCount_RNA > quantile(zhong$nCount_RNA, probs = 0.025) &
+                          nCount_RNA < quantile(zhong$nCount_RNA, probs = 0.975) &
+                          nFeature_RNA > quantile(zhong$nFeature_RNA, probs = 0.025) &
+                          nFeature_RNA < quantile(zhong$nFeature_RNA, probs = 0.975))
+
+table (zhong$gestation)
+table (zhong$donor)
+gc()
+
+zhong
+```
