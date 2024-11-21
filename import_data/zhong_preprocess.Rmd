@@ -1,13 +1,8 @@
----
-title: "zhong"
-output: html_document
-date: "2023-09-06"
----
 
 ```{r}
-counts <- as.data.frame (read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/zhong_2018_gw8_26/GSE104276_all_pfc_2394_UMI_count_NOERCC.xls"))
+counts <- as.data.frame (read.table("./zhong_2018_gw8_26/GSE104276_all_pfc_2394_UMI_count_NOERCC.xls"))
 
-meta <- read.csv("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/zhong_2018_gw8_26/GSE104276_meta.csv")
+meta <- read.csv("./zhong_2018_gw8_26/GSE104276_meta.csv")
 
 counts <- counts[, colnames(counts) %in% meta$X]
 meta <- meta[match(colnames(counts), meta$X), ]
