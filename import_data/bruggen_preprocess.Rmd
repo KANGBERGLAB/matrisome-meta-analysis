@@ -4,13 +4,13 @@ output: html_document
 date: "2023-09-06"
 ---
 ```{r}
-counts <- read.table(gzfile("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bruggen_2021_pcw8_10/bruggen_exprMatrix.tsv.gz"), header = T, sep = '\t')
+counts <- read.table(gzfile("./bruggen_2021_pcw8_10/bruggen_exprMatrix.tsv.gz"), header = T, sep = '\t')
 
 features <- counts$gene
 counts <- counts [,-1]
 rownames(counts) <- features
 
-meta <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bruggen_2021_pcw8_10/bruggen_meta.tsv", header = TRUE, sep = "\t")
+meta <- read.table("./bruggen_2021_pcw8_10/bruggen_meta.tsv", header = TRUE, sep = "\t")
 ```
 
 
