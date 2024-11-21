@@ -1,18 +1,12 @@
----
-title: "20241004_eze_preprocess"
-output: html_document
-date: "2024-10-11"
----
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal1/matrix.mtx")
+counts <- readMM("./eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal1/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal1/genes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal1/genes.tsv", header = FALSE, sep = "\t")
 
 
 genes[duplicated(genes$V2),]
@@ -28,7 +22,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal1/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal1/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -39,9 +33,9 @@ eze_gw8_cs20 <- CreateSeuratObject(counts = counts, project = "eze", min.cells =
 
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal2.mex.tar/CS20_frontal2/matrix.mtx")
+counts <- readMM("./eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal2.mex.tar/CS20_frontal2/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal2.mex.tar/CS20_frontal2/genes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal2.mex.tar/CS20_frontal2/genes.tsv", header = FALSE, sep = "\t")
 
 
 genes[duplicated(genes$V2),]
@@ -57,7 +51,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal2.mex.tar/CS20_frontal2/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal2.mex.tar/CS20_frontal2/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -75,9 +69,9 @@ eze_8_cs20[["RNA"]] <- JoinLayers(eze_8_cs20[["RNA"]])
 
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_2_PFC.mex.tar/CS22_2_PFC/matrix.mtx")
+counts <- readMM("./eze_raw_2021/GW8_CS22_2_PFC.mex.tar/CS22_2_PFC/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_2_PFC.mex.tar/CS22_2_PFC/genes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./eze_raw_2021/GW8_CS22_2_PFC.mex.tar/CS22_2_PFC/genes.tsv", header = FALSE, sep = "\t")
 
 
 genes[duplicated(genes$V2),]
@@ -93,7 +87,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_2_PFC.mex.tar/CS22_2_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./eze_raw_2021/GW8_CS22_2_PFC.mex.tar/CS22_2_PFC/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -103,9 +97,9 @@ eze_8_cs22a <- CreateSeuratObject(counts = counts, project = "eze", min.cells = 
 ```
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_PFC.mex.tar/CS22_PFC/matrix.mtx")
+counts <- readMM("./eze_raw_2021/GW8_CS22_PFC.mex.tar/CS22_PFC/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_PFC.mex.tar/CS22_PFC/enes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./eze_raw_2021/GW8_CS22_PFC.mex.tar/CS22_PFC/enes.tsv", header = FALSE, sep = "\t")
 
 
 genes[duplicated(genes$V2),]
@@ -121,7 +115,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_PFC.mex.tar/CS22_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./eze_raw_2021/GW8_CS22_PFC.mex.tar/CS22_PFC/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
