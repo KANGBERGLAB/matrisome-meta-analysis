@@ -1,14 +1,7 @@
----
-title: "cameron"
-output: html_document
-date: "2023-11-15"
----
-
-
 ```{r}
-counts <- read.table(gzfile("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome/cameron_snrna_2022_gw17_18/cameron_2022_snRNAseq_FC_raw_count_gEX_matrix.txt.gz"), header = T, sep = '')
+counts <- read.table(gzfile("./cameron_snrna_2022_gw17_18/cameron_2022_snRNAseq_FC_raw_count_gEX_matrix.txt.gz"), header = T, sep = '')
 
-meta <- read.table(gzfile("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome/cameron_snrna_2022_gw17_18/cameron_2022_snRNAseq_FC_metadata.txt.gz"), header = T, sep = '')
+meta <- read.table(gzfile("./cameron_snrna_2022_gw17_18/cameron_2022_snRNAseq_FC_metadata.txt.gz"), header = T, sep = '')
 
 meta$gestation <- ifelse(meta$sample %in% c("510_PFC_B1", "611_PFC_B1"), 16, 17)
 ```
