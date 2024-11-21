@@ -11,9 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW15_wholePFC.mex.tar/GW15_wholePFC/matrix.mtx")
+counts <- readMM("./GW15_wholePFC.mex.tar/GW15_wholePFC/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW15_wholePFC.mex.tar/GW15_wholePFC/enes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW15_wholePFC/enes.tsv", header = FALSE, sep = "\t")
 
 
 genes[duplicated(genes$V2),]
@@ -29,7 +29,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW15_wholePFC.mex.tar/GW15_wholePFC/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW15_wholePFC/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -40,9 +40,9 @@ bhaduri_15_b15 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.c
 
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW17_PFC.mex.tar/GRCh38/matrix.mtx")
+counts <- readMM("./GW17_PFC.mex.tar/GRCh38/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW17_PFC.mex.tar/GRCh38/genes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW17_PFC.mex.tar/GRCh38/genes.tsv", header = FALSE, sep = "\t")
 
 genes[duplicated(genes$V2),]
 
@@ -58,7 +58,7 @@ genes <- genes %>%
 table(duplicated(genes$V2))
 
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW17_PFC.mex.tar/GRCh38/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW17_PFC.mex.tar/GRCh38/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -69,9 +69,9 @@ bhaduri_17_b17 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.c
 
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW18_PFC.mex.tar/GW18_PFC/matrix.mtx")
+counts <- readMM("./GW18_PFC.mex.tar/GW18_PFC/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW18_PFC.mex.tar/GW18_PFC/enes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW18_PFC.mex.tar/GW18_PFC/enes.tsv", header = FALSE, sep = "\t")
 
 genes[duplicated(genes$V2),]
 
@@ -86,7 +86,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW18_PFC.mex.tar/GW18_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW18_PFC/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -97,9 +97,9 @@ bhaduri_18_b18 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.c
 
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW19_PFC_all.mex.tar/GW19_PFC_all/matrix.mtx")
+counts <- readMM("./GW19_PFC_all.mex.tar/GW19_PFC_all/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW19_PFC_all.mex.tar/GW19_PFC_all/enes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW19_PFC_all/enes.tsv", header = FALSE, sep = "\t")
 
 genes[duplicated(genes$V2),]
 
@@ -114,7 +114,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW19_PFC_all.mex.tar/GW19_PFC_all/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW19_PFC_all/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -124,9 +124,9 @@ bhaduri_19_b19 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.c
 ```
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_31_PFC.mex.tar/GW20_31_PFC/matrix.mtx")
+counts <- readMM("./GW20_31_PFC.mex.tar/GW20_31_PFC/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_31_PFC.mex.tar/GW20_31_PFC/enes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW20_31_PFC/enes.tsv", header = FALSE, sep = "\t")
 
 genes[duplicated(genes$V2),]
 
@@ -141,7 +141,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_31_PFC.mex.tar/GW20_31_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW20_31_PFC/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -151,9 +151,9 @@ bhaduri_20_b31 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.c
 ```
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_34_PFC.mex.tar/GW20_34_PFC/matrix.mtx")
+counts <- readMM("./GW20_34_PFC/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_34_PFC.mex.tar/GW20_34_PFC/enes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW20_34_PFC/enes.tsv", header = FALSE, sep = "\t")
 
 genes[duplicated(genes$V2),]
 
@@ -168,7 +168,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_34_PFC.mex.tar/GW20_34_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW20_34_PFC/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -178,9 +178,9 @@ bhaduri_20_b34 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.c
 ```
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20PFC.mex.tar/GW20PFC/matrix.mtx")
+counts <- readMM("./GW20PFC.mex.tar/GW20PFC/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20PFC.mex.tar/GW20PFC/genes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW20PFC/genes.tsv", header = FALSE, sep = "\t")
 
 genes[duplicated(genes$V2),]
 
@@ -195,7 +195,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20PFC.mex.tar/GW20PFC/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW20PFC/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -205,9 +205,9 @@ bhaduri_20_b20 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.c
 ```
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC1.mex.tar/GW22_PFC1/matrix.mtx")
+counts <- readMM("./GW22_PFC1.mex.tar/GW22_PFC1/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC1.mex.tar/GW22_PFC1/genes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW22_PFC1/genes.tsv", header = FALSE, sep = "\t")
 
 genes[duplicated(genes$V2),]
 
@@ -222,7 +222,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC1.mex.tar/GW22_PFC1/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW22_PFC1/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -232,9 +232,9 @@ bhaduri_gw22_b22_1 <- CreateSeuratObject(counts = counts, project = "bhaduri", m
 ```
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC2.mex.tar/GW22_PFC2/matrix.mtx")
+counts <- readMM("./GW22_PFC2/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC2.mex.tar/GW22_PFC2/genes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW22_PFC2/genes.tsv", header = FALSE, sep = "\t")
 
 genes[duplicated(genes$V2),]
 
@@ -249,7 +249,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC2.mex.tar/GW22_PFC2/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW22_PFC2/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -268,9 +268,9 @@ bhaduri_22_b22[["RNA"]] <- JoinLayers(bhaduri_22_b22[["RNA"]])
 
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC1.mex.tar/GW22T_PFC1/matrix.mtx")
+counts <- readMM("./GW22T_PFC1/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC1.mex.tar/GW22T_PFC1/genes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW22T_PFC1/genes.tsv", header = FALSE, sep = "\t")
 
 genes[duplicated(genes$V2),]
 
@@ -285,7 +285,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC1.mex.tar/GW22T_PFC1/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW22T_PFC1/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -296,9 +296,9 @@ bhaduri_gw22_t22_1 <- CreateSeuratObject(counts = counts, project = "bhaduri", m
 
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC2.mex.tar/GW22T_PFC2/matrix.mtx")
+counts <- readMM("./GW22T_PFC2.mex.tar/GW22T_PFC2/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC2.mex.tar/GW22T_PFC2/genes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW22T_PFC2/genes.tsv", header = FALSE, sep = "\t")
 
 genes[duplicated(genes$V2),]
 
@@ -313,7 +313,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC2.mex.tar/GW22T_PFC2/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW22T_PFC2/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
@@ -331,9 +331,9 @@ bhaduri_22_t22[["RNA"]] <- JoinLayers(bhaduri_22_t22[["RNA"]])
 
 
 ```{r}
-counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW25_PFC.mex.tar/GW25_PFC/matrix.mtx")
+counts <- readMM("./GW25_PFC/matrix.mtx")
 
-genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW25_PFC.mex.tar/GW25_PFC/genes.tsv", header = FALSE, sep = "\t")
+genes <- read.table("./GW25_PFC/genes.tsv", header = FALSE, sep = "\t")
 
 genes[duplicated(genes$V2),]
 
@@ -348,7 +348,7 @@ genes <- genes %>%
 
 table(duplicated(genes$V2))
 
-barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW25_PFC.mex.tar/GW25_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+barcodes <- read.table("./GW25_PFC/barcodes.tsv", header = FALSE, sep = "\t")
 
 
 rownames(counts) <- genes$gene_name_unique
