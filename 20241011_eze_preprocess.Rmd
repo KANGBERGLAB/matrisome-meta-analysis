@@ -1,0 +1,239 @@
+---
+title: "20241004_eze_preprocess"
+output: html_document
+date: "2024-10-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal1/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal1/genes.tsv", header = FALSE, sep = "\t")
+
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal1/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+eze_gw8_cs20 <- CreateSeuratObject(counts = counts, project = "eze", min.cells = 3, min.features = 200)
+```
+
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal2.mex.tar/CS20_frontal2/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal2.mex.tar/CS20_frontal2/genes.tsv", header = FALSE, sep = "\t")
+
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS20_frontal1.mex.tar/CS20_frontal2.mex.tar/CS20_frontal2/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+eze_gw8_cs20a <- CreateSeuratObject(counts = counts, project = "eze", min.cells = 3, min.features = 200)
+```
+
+```{r}
+eze_8_cs20 <-merge(eze_gw8_cs20, y = c(eze_gw8_cs20a),
+      project = 'eze')
+rm (eze_gw8_cs20,eze_gw8_cs20a)
+eze_8_cs20[["RNA"]] <- JoinLayers(eze_8_cs20[["RNA"]])
+```
+
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_2_PFC.mex.tar/CS22_2_PFC/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_2_PFC.mex.tar/CS22_2_PFC/genes.tsv", header = FALSE, sep = "\t")
+
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_2_PFC.mex.tar/CS22_2_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+eze_8_cs22a <- CreateSeuratObject(counts = counts, project = "eze", min.cells = 3, min.features = 200)
+```
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_PFC.mex.tar/CS22_PFC/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_PFC.mex.tar/CS22_PFC/enes.tsv", header = FALSE, sep = "\t")
+
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/eze_raw_2021/GW8_CS22_PFC.mex.tar/CS22_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+eze_8_cs22 <- CreateSeuratObject(counts = counts, project = "eze", min.cells = 3, min.features = 200)
+```
+
+
+
+```{r}
+rm (counts, genes, barcodes)
+```
+
+
+
+```{r}
+gc()
+eze <- merge(eze_8_cs20, y = c(eze_8_cs22a, eze_8_cs22),
+      add.cell.ids = ls()[1:3],
+      project = 'eze')
+eze$sample <- rownames(eze@meta.data)
+eze@meta.data <- separate(eze@meta.data, 
+                                    col = 'sample', 
+                                    into = c('study', "gestation", "donor", 'Barcode'), 
+                                    sep = '_')
+gc()
+```
+
+
+```{r}
+rm(list = setdiff(ls(), "eze"))
+```
+
+
+```{r}
+eze[["percent.mt"]] <- PercentageFeatureSet(eze, pattern = "^MT-")
+
+v1 <- VlnPlot(eze, features = c("nFeature_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v2 <- VlnPlot(eze, features = c("nCount_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v3 <- VlnPlot(eze, features = c("percent.mt"), 
+       pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+
+plot_grid(v1, v2, v3, ncol = 3)
+
+FeatureScatter(eze, feature1 = "nCount_RNA", feature2 = "percent.mt", group.by = "donor") +
+  geom_smooth(method = 'lm')
+FeatureScatter(eze, feature1 = "nCount_RNA", feature2 = "nFeature_RNA", group.by = "donor") +
+  geom_smooth(method = 'lm')
+```
+
+```{r}
+hist(eze$nCount_RNA, breaks =100)
+quantile(eze$nCount_RNA, probs = 0.975)
+quantile(eze$nCount_RNA, probs = 0.025)
+abline(v= quantile(eze$nCount_RNA, probs = 0.975), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(eze$nCount_RNA, probs = 0.025), col = 'red', lwd = 2, lty = 'dashed')
+hist(eze$nFeature_RNA)
+quantile(eze$nFeature_RNA, probs = 0.975)
+quantile(eze$nFeature_RNA, probs = 0.025)
+abline(v= quantile(eze$nFeature_RNA, probs = 0.975), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(eze$nFeature_RNA, probs = 0.025), col = 'red', lwd = 2, lty = 'dashed')
+hist(eze$percent.mt)
+abline(v= 10, col = 'red', lwd = 2, lty = 'dashed')
+```
+
+
+```{r}
+table (eze$study)
+table (eze$gestation)
+table (eze$donor)
+```
+
+
+```{r}
+eze <- subset(eze, subset =
+                          percent.mt < 10 &  
+                          nCount_RNA > quantile(eze$nCount_RNA, probs = 0.025) &
+                          nCount_RNA < quantile(eze$nCount_RNA, probs = 0.975) &
+                          nFeature_RNA > quantile(eze$nFeature_RNA, probs = 0.025) &
+                          nFeature_RNA < quantile(eze$nFeature_RNA, probs = 0.975))
+table (eze$study)
+table (eze$gestation)
+table (eze$donor)
+gc()
+
+eze
+
+eze[["RNA"]] <- JoinLayers(eze[["RNA"]])
+
+eze
+```
+
+
+```{r}
+hist(eze$nCount_RNA, prob = TRUE, main = "Raw count distribution", xlab = "number of UMIs")
+
+g = log10(eze$nCount_RNA)
+m<-mean(g)
+std<-sqrt(var(g))
+
+hist(log10(eze$nCount_RNA), prob = TRUE, ylim = c(0,1.7), main = "log-transformed count distribution", xlab = "number of UMIs")
+curve(dnorm(x, mean=m, sd=std), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+rm(g, g2, m, std)
+
+gc()
+```
+

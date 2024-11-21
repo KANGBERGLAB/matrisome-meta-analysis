@@ -1,0 +1,104 @@
+---
+title: "cameron"
+output: html_document
+date: "2023-11-15"
+---
+
+
+```{r}
+counts <- read.table(gzfile("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome/cameron_snrna_2022_gw17_18/cameron_2022_snRNAseq_FC_raw_count_gEX_matrix.txt.gz"), header = T, sep = '')
+
+meta <- read.table(gzfile("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome/cameron_snrna_2022_gw17_18/cameron_2022_snRNAseq_FC_metadata.txt.gz"), header = T, sep = '')
+
+meta$gestation <- ifelse(meta$sample %in% c("510_PFC_B1", "611_PFC_B1"), 16, 17)
+```
+
+
+```{r}
+gc()
+cameron <- CreateSeuratObject(counts = counts, project = "cameron", min.cells = 3, min.features = 200)
+
+cameron@meta.data$gestation <- meta$gestation
+table (cameron$gestation)
+
+cameron@meta.data$donor <- meta$sample
+table (cameron$donor)
+
+rm(counts, meta)
+gc()
+```
+
+```{r}
+cameron[["percent.mt"]] <- PercentageFeatureSet(cameron, pattern = "^MT-")
+
+v1 <- VlnPlot(cameron, features = c("nFeature_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v2 <- VlnPlot(cameron, features = c("nCount_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v3 <- VlnPlot(cameron, features = c("percent.mt"), 
+       pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+
+plot_grid(v1, v2, v3, ncol = 3)
+
+FeatureScatter(cameron, feature1 = "nCount_RNA", feature2 = "percent.mt", group.by = "donor") +
+  geom_smooth(method = 'lm')
+FeatureScatter(cameron, feature1 = "nCount_RNA", feature2 = "nFeature_RNA", group.by = "donor") +
+  geom_smooth(method = 'lm')
+```
+
+```{r}
+hist(cameron$nCount_RNA, breaks = 100)
+quantile(cameron$nCount_RNA, probs = 0.975)
+quantile(cameron$nCount_RNA, probs = 0.025)
+abline(v= quantile(cameron$nCount_RNA, probs = 0.975), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(cameron$nCount_RNA, probs = 0.025), col = 'red', lwd = 2, lty = 'dashed')
+hist(cameron$nFeature_RNA)
+quantile(cameron$nFeature_RNA, probs = 0.975)
+quantile(cameron$nFeature_RNA, probs = 0.025)
+abline(v= quantile(cameron$nFeature_RNA, probs = 0.975), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(cameron$nFeature_RNA, probs = 0.025), col = 'red', lwd = 2, lty = 'dashed')
+hist(cameron$percent.mt)
+abline(v= 10, col = 'red', lwd = 2, lty = 'dashed')
+```
+
+
+```{r}
+cameron
+table (cameron$gestation)
+table (cameron$donor)
+```
+
+
+```{r}
+cameron <- subset(cameron, subset =
+                          percent.mt < 10 &  
+                          nCount_RNA > quantile(cameron$nCount_RNA, probs = 0.025) &
+                          nCount_RNA < quantile(cameron$nCount_RNA, probs = 0.975) &
+                          nFeature_RNA > quantile(cameron$nFeature_RNA, probs = 0.025) &
+                          nFeature_RNA < quantile(cameron$nFeature_RNA, probs = 0.975))
+
+table (cameron$gestation)
+table (cameron$donor)
+gc()
+
+cameron
+```
+
+```{r}
+hist(cameron$nCount_RNA, prob = TRUE, main = "Raw count distribution", xlab = "number of UMIs")
+
+g = log10(cameron$nCount_RNA)
+m<-mean(g)
+std<-sqrt(var(g))
+
+hist(log10(cameron$nCount_RNA), prob = TRUE, ylim = c(0,2.2), main = "log-transformed count distribution", xlab = "number of UMIs")
+curve(dnorm(x, mean=m, sd=std), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+rm(g, g2, m, std)
+
+gc()
+```

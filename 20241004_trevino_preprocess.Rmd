@@ -1,0 +1,114 @@
+---
+title: "trevino"
+output: html_document
+date: "2023-09-06"
+---
+
+```{r}
+counts <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/trevino_foetal_gw16_24/GSE162170_rna_counts.tsv",sep = '\t', header = TRUE)
+meta <- as.data.frame(read.delim ("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/trevino_foetal_gw16_24/GSE162170_rna_cell_metadata.txt"))
+```
+
+```{r}
+converted_id <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/trevino_foetal_gw16_24/trevino_features2.csv",sep = ',', header = TRUE)
+rownames(counts) <- converted_id$gene_id
+```
+
+```{r}
+trevino <- CreateSeuratObject(counts = counts, project = "trevino", min.cells = 3, min.features = 200)
+table (trevino$orig.ident)
+```
+
+```{r}
+gestation <- meta$Age
+table (gestation)
+
+cleaned_values <- as.numeric(gsub("pcw", "", gestation)) + 2
+
+trevino$gestation <- cleaned_values
+
+table(trevino$gestation)
+typeof(trevino$gestation)
+
+trevino$donor <- meta$Tissue.ID
+table (trevino$donor)
+```
+
+```{r}
+rm(counts, meta, converted_id, gestation, cleaned_values)
+```
+
+```{r}
+trevino[["percent.mt"]] <- PercentageFeatureSet(trevino, pattern = "^MT-")
+
+v1 <- VlnPlot(trevino, features = c("nFeature_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v2 <- VlnPlot(trevino, features = c("nCount_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v3 <- VlnPlot(trevino, features = c("percent.mt"), 
+       pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+
+plot_grid(v1, v2, v3, ncol = 3)
+
+FeatureScatter(trevino, feature1 = "nCount_RNA", feature2 = "percent.mt", group.by = "donor") +
+  geom_smooth(method = 'lm')
+FeatureScatter(trevino, feature1 = "nCount_RNA", feature2 = "nFeature_RNA", group.by = "donor") +
+  geom_smooth(method = 'lm')
+```
+
+```{r}
+hist(trevino$nCount_RNA,breaks=1000)
+quantile(trevino$nCount_RNA, probs = 0.975)
+quantile(trevino$nCount_RNA, probs = 0.025)
+abline(v= quantile(trevino$nCount_RNA, probs = 0.975), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(trevino$nCount_RNA, probs = 0.025), col = 'red', lwd = 2, lty = 'dashed')
+hist(trevino$nFeature_RNA)
+quantile(trevino$nFeature_RNA, probs = 0.975)
+quantile(trevino$nFeature_RNA, probs = 0.025)
+abline(v= quantile(trevino$nFeature_RNA, probs = 0.975), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(trevino$nFeature_RNA, probs = 0.025), col = 'red', lwd = 2, lty = 'dashed')
+hist(trevino$percent.mt)
+abline(v= 10, col = 'red', lwd = 2, lty = 'dashed')
+```
+
+
+```{r}
+trevino
+table (trevino$gestation)
+table (trevino$donor)
+```
+
+
+```{r}
+trevino <- subset(trevino, subset =
+                          percent.mt < 10 &  
+                          nCount_RNA > quantile(trevino$nCount_RNA, probs = 0.025) &
+                          nCount_RNA < quantile(trevino$nCount_RNA, probs = 0.975) &
+                          nFeature_RNA > quantile(trevino$nFeature_RNA, probs = 0.025) &
+                          nFeature_RNA < quantile(trevino$nFeature_RNA, probs = 0.975))
+table (trevino$gestation)
+table (trevino$donor)
+gc()
+
+trevino
+```
+
+
+```{r}
+hist(trevino$nCount_RNA, prob = TRUE, main = "Raw count distribution", xlab = "number of UMIs")
+
+g = log10(trevino$nCount_RNA)
+m<-mean(g)
+std<-sqrt(var(g))
+
+hist(log10(trevino$nCount_RNA), prob = TRUE, ylim = c(0,2.0), main = "log-transformed count distribution", xlab = "number of UMIs")
+curve(dnorm(x, mean=m, sd=std), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+rm(g, g2, m, std)
+
+gc()
+```

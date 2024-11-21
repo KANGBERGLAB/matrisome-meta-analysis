@@ -1,0 +1,465 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-10-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW15_wholePFC.mex.tar/GW15_wholePFC/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW15_wholePFC.mex.tar/GW15_wholePFC/enes.tsv", header = FALSE, sep = "\t")
+
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW15_wholePFC.mex.tar/GW15_wholePFC/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_15_b15 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW17_PFC.mex.tar/GRCh38/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW17_PFC.mex.tar/GRCh38/genes.tsv", header = FALSE, sep = "\t")
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW17_PFC.mex.tar/GRCh38/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_17_b17 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW18_PFC.mex.tar/GW18_PFC/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW18_PFC.mex.tar/GW18_PFC/enes.tsv", header = FALSE, sep = "\t")
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW18_PFC.mex.tar/GW18_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_18_b18 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW19_PFC_all.mex.tar/GW19_PFC_all/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW19_PFC_all.mex.tar/GW19_PFC_all/enes.tsv", header = FALSE, sep = "\t")
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW19_PFC_all.mex.tar/GW19_PFC_all/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_19_b19 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_31_PFC.mex.tar/GW20_31_PFC/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_31_PFC.mex.tar/GW20_31_PFC/enes.tsv", header = FALSE, sep = "\t")
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_31_PFC.mex.tar/GW20_31_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_20_b31 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_34_PFC.mex.tar/GW20_34_PFC/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_34_PFC.mex.tar/GW20_34_PFC/enes.tsv", header = FALSE, sep = "\t")
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20_34_PFC.mex.tar/GW20_34_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_20_b34 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20PFC.mex.tar/GW20PFC/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20PFC.mex.tar/GW20PFC/genes.tsv", header = FALSE, sep = "\t")
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW20PFC.mex.tar/GW20PFC/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_20_b20 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC1.mex.tar/GW22_PFC1/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC1.mex.tar/GW22_PFC1/genes.tsv", header = FALSE, sep = "\t")
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC1.mex.tar/GW22_PFC1/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_gw22_b22_1 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC2.mex.tar/GW22_PFC2/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC2.mex.tar/GW22_PFC2/genes.tsv", header = FALSE, sep = "\t")
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22_PFC2.mex.tar/GW22_PFC2/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_gw22_b22_2 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+```{r}
+bhaduri_22_b22 <-merge(bhaduri_gw22_b22_1, y = c(bhaduri_gw22_b22_2),
+      project = 'bhaduri')
+rm (bhaduri_gw22_b22_1,bhaduri_gw22_b22_2)
+bhaduri_22_b22[["RNA"]] <- JoinLayers(bhaduri_22_b22[["RNA"]])
+```
+
+
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC1.mex.tar/GW22T_PFC1/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC1.mex.tar/GW22T_PFC1/genes.tsv", header = FALSE, sep = "\t")
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC1.mex.tar/GW22T_PFC1/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_gw22_t22_1 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC2.mex.tar/GW22T_PFC2/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC2.mex.tar/GW22T_PFC2/genes.tsv", header = FALSE, sep = "\t")
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW22T_PFC2.mex.tar/GW22T_PFC2/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_gw22_t22_2 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+```{r}
+bhaduri_22_t22 <-merge(bhaduri_gw22_t22_1, y = c(bhaduri_gw22_t22_2),
+      project = 'bhaduri')
+rm (bhaduri_gw22_t22_1,bhaduri_gw22_t22_2)
+bhaduri_22_t22[["RNA"]] <- JoinLayers(bhaduri_22_t22[["RNA"]])
+```
+
+
+```{r}
+counts <- readMM("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW25_PFC.mex.tar/GW25_PFC/matrix.mtx")
+
+genes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW25_PFC.mex.tar/GW25_PFC/genes.tsv", header = FALSE, sep = "\t")
+
+genes[duplicated(genes$V2),]
+
+genes <- genes %>%
+  group_by(V2) %>%
+  mutate(gene_name_unique = if_else(
+    row_number() > 1 & n() > 1,
+    paste0(V2, "_", row_number() - 1),
+    V2
+  )) %>%
+  ungroup()
+
+table(duplicated(genes$V2))
+
+barcodes <- read.table("C:/Users/r02dg22/OneDrive - University of Aberdeen/scrna_seq/matrisome_meta_analysis/bhaduri_2021_gw14_25/unprocessed/GW25_PFC.mex.tar/GW25_PFC/barcodes.tsv", header = FALSE, sep = "\t")
+
+
+rownames(counts) <- genes$gene_name_unique
+colnames(counts) <- barcodes$V1
+
+bhaduri_25_b25 <- CreateSeuratObject(counts = counts, project = "bhaduri", min.cells = 3, min.features = 200)
+```
+
+
+```{r}
+rm (counts, genes, barcodes)
+```
+
+
+
+```{r}
+gc()
+bhaduri <- merge(bhaduri_15_b15, y = c(bhaduri_17_b17, bhaduri_18_b18, bhaduri_19_b19, bhaduri_20_b31, bhaduri_20_b34, bhaduri_20_b20, bhaduri_22_b22, bhaduri_22_t22, bhaduri_25_b25),
+      add.cell.ids = ls()[1:10],
+      project = 'bhaduri')
+bhaduri$sample <- rownames(bhaduri@meta.data)
+bhaduri@meta.data <- separate(bhaduri@meta.data, 
+                                    col = 'sample', 
+                                    into = c('study', "gestation", "donor", 'Barcode'), 
+                                    sep = '_')
+gc()
+```
+
+
+```{r}
+rm(list = setdiff(ls(), "bhaduri"))
+```
+
+
+```{r}
+bhaduri[["percent.mt"]] <- PercentageFeatureSet(bhaduri, pattern = "^MT-")
+
+v1 <- VlnPlot(bhaduri, features = c("nFeature_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v2 <- VlnPlot(bhaduri, features = c("nCount_RNA"), 
+        pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+v3 <- VlnPlot(bhaduri, features = c("percent.mt"), 
+       pt.size = 0, group.by = "donor") +
+  geom_boxplot(width=0.1)
+
+plot_grid(v1, v2, v3, ncol = 3)
+
+FeatureScatter(bhaduri, feature1 = "nCount_RNA", feature2 = "percent.mt", group.by = "donor") +
+  geom_smooth(method = 'lm')
+FeatureScatter(bhaduri, feature1 = "nCount_RNA", feature2 = "nFeature_RNA", group.by = "donor") +
+  geom_smooth(method = 'lm')
+```
+
+```{r}
+hist(bhaduri$nCount_RNA, breaks =100)
+quantile(bhaduri$nCount_RNA, probs = 0.975)
+quantile(bhaduri$nCount_RNA, probs = 0.025)
+abline(v= quantile(bhaduri$nCount_RNA, probs = 0.975), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(bhaduri$nCount_RNA, probs = 0.025), col = 'red', lwd = 2, lty = 'dashed')
+hist(bhaduri$nFeature_RNA)
+quantile(bhaduri$nFeature_RNA, probs = 0.975)
+quantile(bhaduri$nFeature_RNA, probs = 0.025)
+abline(v= quantile(bhaduri$nFeature_RNA, probs = 0.975), col = 'red', lwd = 2, lty = 'dashed')
+abline(v= quantile(bhaduri$nFeature_RNA, probs = 0.025), col = 'red', lwd = 2, lty = 'dashed')
+hist(bhaduri$percent.mt)
+abline(v= 10, col = 'red', lwd = 2, lty = 'dashed')
+```
+
+
+```{r}
+table (bhaduri$study)
+table (bhaduri$gestation)
+table (bhaduri$donor)
+```
+
+
+```{r}
+bhaduri <- subset(bhaduri, subset =
+                          percent.mt < 10 &  
+                          nCount_RNA > quantile(bhaduri$nCount_RNA, probs = 0.025) &
+                          nCount_RNA < quantile(bhaduri$nCount_RNA, probs = 0.975) &
+                          nFeature_RNA > quantile(bhaduri$nFeature_RNA, probs = 0.025) &
+                          nFeature_RNA < quantile(bhaduri$nFeature_RNA, probs = 0.975))
+table (bhaduri$study)
+table (bhaduri$gestation)
+table (bhaduri$donor)
+gc()
+
+bhaduri
+
+bhaduri[["RNA"]] <- JoinLayers(bhaduri[["RNA"]])
+
+bhaduri
+```
+
+
+```{r}
+hist(bhaduri$nCount_RNA, prob = TRUE, main = "Raw count distribution", xlab = "number of UMIs")
+
+g = log10(bhaduri$nCount_RNA)
+m<-mean(g)
+std<-sqrt(var(g))
+
+hist(log10(bhaduri$nCount_RNA), prob = TRUE, ylim = c(0,1.7), main = "log-transformed count distribution", xlab = "number of UMIs")
+curve(dnorm(x, mean=m, sd=std), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+rm(g, g2, m, std)
+
+gc()
+```
+
