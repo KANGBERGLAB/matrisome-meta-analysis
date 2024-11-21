@@ -1,8 +1,4 @@
----
-title: "van_bruggen"
-output: html_document
-date: "2023-09-06"
----
+
 ```{r}
 counts <- read.table(gzfile("./bruggen_2021_pcw8_10/bruggen_exprMatrix.tsv.gz"), header = T, sep = '\t')
 
