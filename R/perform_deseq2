@@ -1,4 +1,4 @@
-perform_deseq2 <- function(seurat_obj, cell_type) {
+function(seurat_obj, cell_type) {
   # Create a binary condition vector
   condition <- ifelse(Idents(seurat_obj) == cell_type, cell_type, "Other")
   
