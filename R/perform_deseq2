@@ -1,0 +1,49 @@
+perform_deseq2 <- function(seurat_obj, cell_type) {
+  # Create a binary condition vector
+  condition <- ifelse(Idents(seurat_obj) == cell_type, cell_type, "Other")
+  
+  # Export count matrix
+  counts <- GetAssayData(seurat_obj, slot = "counts")
+  
+  # Create sample info
+  sample_info <- data.frame(
+    condition = condition,
+    row.names = colnames(counts)
+  )
+  
+  # Create DESeqDataSet object
+  dds <- DESeqDataSetFromMatrix(countData = counts,
+                                colData = sample_info,
+                                design = ~ condition)
+  
+  # Filter low count genes
+  keep <- rowSums(counts(dds)) >= 10
+  dds <- dds[keep,]
+  
+  # Run DESeq2
+  dds <- DESeq(dds)
+  
+  # Get results
+  res <- results(dds, contrast = c("condition", cell_type, "Other"))
+  
+  # Process results
+  de_genes <- as.data.frame(res) %>%
+    dplyr::select(log2FoldChange, padj) %>%
+    dplyr::arrange(padj) %>%
+    na.omit()
+  
+  de_genes$gene <- rownames(de_genes)
+  de_genes <- de_genes %>% dplyr::select(gene, log2FoldChange, padj)
+  
+  return(de_genes)
+}
+
+# Get all unique cell types
+cell_types <- unique(Idents(pseudo_obj))
+
+# Perform DESeq2 for each cell type
+all_results <- lapply(cell_types, function(ct) {
+  result <- perform_deseq2(pseudo_obj, ct)
+  result$cell_type <- ct
+  return(result)
+})
