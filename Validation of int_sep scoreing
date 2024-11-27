@@ -1,0 +1,96 @@
+```{r}
+library(Seurat)
+library(SeuratData)
+library(patchwork)
+library(dplyr)
+
+# install dataset
+InstallData("ifnb")
+# run standard anlaysis workflow
+# load dataset
+ifnb <- LoadData("ifnb")
+# split the RNA measurements into two layers one for control cells, one for stimulated cells
+
+ifnb[["RNA"]] <- split(ifnb[["RNA"]], f = ifnb$stim)
+ifnb
+ifnb <- NormalizeData(ifnb)
+ifnb <- FindVariableFeatures(ifnb)
+ifnb <- ScaleData(ifnb)
+ifnb <- RunPCA(ifnb)
+ifnb <- FindNeighbors(ifnb, dims = 1:30, reduction = "pca")
+ifnb <- FindClusters(ifnb, resolution = 2, cluster.name = "unintegrated_clusters")
+ifnb <- RunUMAP(ifnb, dims = 1:30, reduction = "pca")
+DimPlot(ifnb, reduction = "umap.unintegrated", group.by = c("stim", "seurat_clusters"))
+```
+
+
+```{r}
+# Calculate integration and separation scores
+test_results_before_int <- calculate_integration_separation_scores(
+  object = ifnb,
+  batch = "stim",
+  cluster.anno = "seurat_annotations"
+)
+
+# Print results
+print(test_results_before_int$integration_scores)
+print(test_results_before_int$separation_scores)
+print(paste("Overall Integration Score:", test_results_before_int$overall_integration_score))
+print(paste("Normalized Integration Score:", test_results_before_int$normalized_integration_score))
+print(paste("Overall Separation Score:", test_results_before_int$overall_separation_score))
+print(paste("Normalized Separation Score:", test_results_before_int$normalized_separation_score))
+```
+
+
+
+```{r}
+ifnb <- IntegrateLayers(object = ifnb, method = CCAIntegration, orig.reduction = "pca", new.reduction = "integrated.cca",
+    verbose = FALSE)
+
+# re-join layers after integration
+ifnb[["RNA"]] <- JoinLayers(ifnb[["RNA"]])
+
+ifnb <- FindNeighbors(ifnb, reduction = "integrated.cca", dims = 1:30)
+ifnb <- FindClusters(ifnb, resolution = 1)
+ifnb <- RunUMAP(ifnb, dims = 1:30, reduction = "integrated.cca")
+# Visualization
+DimPlot(ifnb, reduction = "umap", group.by = c("stim", "seurat_annotations"))
+```
+
+```{r}
+# Calculate integration and separation scores
+test_results <- calculate_integration_separation_scores(
+  object = ifnb,
+  batch = "stim",
+  cluster.anno = "seurat_annotations"
+)
+
+# Print results
+print(test_results$integration_scores)
+print(test_results$separation_scores)
+print(paste("Overall Integration Score:", test_results$overall_integration_score))
+print(paste("Normalized Integration Score:", test_results$normalized_integration_score))
+print(paste("Overall Separation Score:", test_results$overall_separation_score))
+print(paste("Normalized Separation Score:", test_results$normalized_separation_score))
+
+```
+
+If bad separation of annotations,
+
+```{r}
+# Calculate integration and separation scores
+test_results <- calculate_integration_separation_scores(
+  object = ifnb,
+  batch = "stim",
+  cluster.anno = "stim"
+)
+
+# Print results
+print(test_results$integration_scores)
+print(test_results$separation_scores)
+print(paste("Overall Integration Score:", test_results$overall_integration_score))
+print(paste("Normalized Integration Score:", test_results$normalized_integration_score))
+print(paste("Overall Separation Score:", test_results$overall_separation_score))
+print(paste("Normalized Separation Score:", test_results$normalized_separation_score))
+
+```
