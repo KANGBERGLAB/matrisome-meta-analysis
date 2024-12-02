@@ -54,28 +54,36 @@ function(merged_seurat2, project_dir,
       cor = sapply(1:nrow(expr_matrix), function(i) {
         expr_values <- sapply(trend.order, function(trim) {
           mean(expr_matrix[i, which(pseudo_obj[[trend.in]] == trim)])
-        })
+          })
         tryCatch(cor.test(time_points, expr_values)$estimate,
-                error = function(e) NA)
-      }),
+            error = function(e) NA)
+        }),
       pval = sapply(1:nrow(expr_matrix), function(i) {
         expr_values <- sapply(trend.order, function(trim) {
           mean(expr_matrix[i, which(pseudo_obj[[trend.in]] == trim)])
-        })
+          })
         tryCatch(cor.test(time_points, expr_values)$p.value,
-                error = function(e) NA)
-      })
-    )
+                 error = function(e) NA)
+        }),
+      slope = sapply(1:nrow(expr_matrix), function(i) {
+        expr_values <- sapply(trend.order, function(trim) {
+          mean(expr_matrix[i, which(pseudo_obj[[trend.in]] == trim)])
+          })
+        tryCatch(coef(lm(expr_values ~ time_points))[2],
+                 error = function(e) NA)
+        })
+      )
+
     
     # Filter matrisome genes and get significant ones
     print(paste0("Filtering for significantly increasing & decreasing genes for ", cell_type))
-    sig_genes <- cor_results[cor_results$pval < 0.05,]
+    sig_genes <- cor_results[cor_results$pval < 0.05 & abs(cor_results$cor) > 0.5,]
     sig_genes <- sig_genes [complete.cases(sig_genes),]
     all_sig_genes <- rbind(all_sig_genes, sig_genes)
     
     # Get top genes
-    top_increase <- head(sig_genes[sig_genes$cor > 0,][order(-sig_genes[sig_genes$cor > 0,]$cor),], 10)
-    top_decrease <- head(sig_genes[sig_genes$cor < 0,][order(sig_genes[sig_genes$cor < 0,]$cor),], 10)
+    top_increase <- head(sig_genes[sig_genes$slope > 0,][order(-sig_genes[sig_genes$slope > 0,]$slope),], 10)
+    top_decrease <- head(sig_genes[sig_genes$slope < 0,][order(sig_genes[sig_genes$slope < 0,]$slope),], 10)
     
     # Prepare plot data
     print(paste0("Preparing plot data for ", cell_type))
@@ -104,29 +112,30 @@ function(merged_seurat2, project_dir,
     geom_text_repel(
       data = subset(all_plot_data, 
                    trimester == trend.order[1] & type == "Decreasing") %>%
-        distinct(gene, .keep_all = TRUE),
+        group_by(cell_type) %>%
+        distinct(gene, .keep_all = TRUE) %>%
+        slice_max(order_by = expression, n = 3),
       aes(label = gene),
       direction = "y",
       hjust = 1,
       nudge_x = -0.2,
       size = 2.5,
       box.padding = 0.5,
-      force = 2,
-      max.overlaps = Inf
+      force = 2
     ) +
     geom_text_repel(
       data = subset(all_plot_data, 
                    trimester == trend.order[length(trend.order)] & type == "Increasing") %>%
-        distinct(gene, .keep_all = TRUE),
+        group_by(cell_type) %>%
+        distinct(gene, .keep_all = TRUE) %>%
+        slice_max(order_by = expression, n = 3),
       aes(label = gene),
       direction = "y",
       hjust = 0,
       nudge_x = 0.2,
       size = 2.5,
       box.padding = 0.5,
-      force = 2,
-      max.overlaps = Inf
-    ) +
+      force = 2) +
     scale_color_manual(values = c("Increasing" = "tomato", "Decreasing" = "slateblue")) +
     theme_minimal() +
     theme(
@@ -158,12 +167,17 @@ function(merged_seurat2, project_dir,
   cell_rankings <- all_sig_genes %>%
     group_by(cellType) %>%
     summarize(
+      total_sig_genes = n(),
       pos_cor = sum(cor > 0, na.rm = TRUE),
       neg_cor = sum(cor < 0, na.rm = TRUE),
-      pos_neg_propo = pos_cor/neg_cor,
-      total_sig_genes = n(),
+      pos_neg_cor_ratio = pos_cor/neg_cor,
       strong_cor_genes = sum(abs(cor) > 0.5, na.rm = TRUE),
-      percent_strong = round(strong_cor_genes/total_sig_genes * 100, 2)
+      percent_strong = round(strong_cor_genes/total_sig_genes * 100, 2),
+      pos_coef = sum(slope > 0, na.rm = TRUE),
+      neg_coef = sum(slope < 0, na.rm = TRUE),
+      pos_neg_coef_ratio = pos_coef/neg_coef,
+      strong_coef_genes = sum(abs(slope) > 0.5, na.rm = TRUE),
+      percent_strong_coef = round(strong_coef_genes/total_sig_genes * 100, 2)
     ) %>%
     arrange(desc(strong_cor_genes))
   
