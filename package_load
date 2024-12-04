@@ -1,0 +1,38 @@
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+bioc.pkgs <- c("biomaRt","org.Hs.eg.db", "EnsDb.Hsapiens.v86","DropletUtils", "scran","ComplexHeatmap", "multtest", "scater","DESeq2", "MAST", "GO.db", "WGCNA",'Rsamtools', 'ChIPseeker', 'monocle','RcisTarget', 'RCy3', 'clusterProfiler',"GENIE3","slingshot")
+cran.pkgs <- c("Seurat", "tidyverse","ggraph","VennDiagram", "wesanderson", "ggthemes","metap","ggpubr", "ggprism","colorRamp2","plotly", "networkD3", "ggrepel", "RColorBrewer", "HGNChelper","plot3D", "doRNG")
+
+for(x in seq_along(bioc.pkgs)){
+  x.bioc <- bioc.pkgs[x]
+  if(!require(x.bioc, quietly = TRUE)){
+    BiocManager::install(x.bioc)
+  }
+}
+
+
+for(x in seq_along(cran.pkgs)){
+  x.cran <- cran.pkgs[x]
+  if(!require(x.cran, quietly = TRUE)){
+    install.packages(x.cran)
+  }
+}
+
+
+github.pkgs <- c("stephenturner/annotables","igraph/rigraph", "jinworks/CellChat",'immunogenomics/presto',"yanlinlin82/ggvenn","velocyto-team/velocyto.R",'satijalab/seurat-wrappers',"mojaveazure/seurat-disk","AckerDWM/gg3D","jiang-junyao/IReNA",'cole-trapnell-lab/monocle3',"immunogenomics/lisi")
+
+for(x in seq_along(github.pkgs)){
+  x.github <- github.pkgs[x]
+  if(!require(x.github, quietly = TRUE)){
+    devtools::install_github(x.github)
+  }
+}
+
+```
+
+
+```{r}
+lapply(c("BiocManager","devtools","Seurat", "Matrix", "patchwork", "ggplot2", "ggthemes","scuttle", "DropletUtils", "uwot", "ggraph", "reshape2", "scran", "dplyr", "stringr", "ComplexHeatmap", "tidyr", "multtest", "metap", "generics", "igraph", 'ggpubr', 'ggprism', 'rstatix',"biomaRt","annotables","org.Hs.eg.db", "EnsDb.Hsapiens.v86", "tidyverse", 'ggsignif', 'HGNChelper', 'cowplot', 'colorRamp2', 'scales',"VennDiagram","plotly", "networkD3", "ggrepel", "RColorBrewer", "wesanderson", "ggthemes","DESeq2", "MAST", "SeuratDisk", "SeuratWrappers","gg3D","plot3D","purrr", "GO.db", "WGCNA","slingshot", "monocle3", "IReNA", "GENIE3","immunogenomics/lisi"), library, character.only = T)
+```
