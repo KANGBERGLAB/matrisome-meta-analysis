@@ -1,0 +1,98 @@
+## 4. characterisation of unspecific neuron
+
+clear out ls
+```{r}
+rm(list = setdiff(ls(), "merged_seurat"))
+gc()
+```
+
+Create pseudo matrix
+```{r}
+colpal <- c ("#C7EBB1", "#FFD5FF", "#34854D", "#DEB0B0","#F26378", "#CA2F40", "#81B1DE","#C58862", "#7F517D", "#33608C", "#F5CA61", "#49525E")
+cell_levels <- c("vRG","oRG","tRG", "IPC", "Imm.GExN","M.GExN","Unknown","GABA IN","Astrocyte","OPC","Microglia","Endothelial")
+
+merged_seurat2 <- merged_seurat
+merged_seurat2[["RNA"]] <- JoinLayers(merged_seurat2[["RNA"]])
+pseudo_obj <- AggregateExpression(merged_seurat, assays = "RNA", return.seurat = T, group.by = c("sctype", "donor"))
+table(pseudo_obj$sctype)
+Idents(pseudo_obj) <- pseudo_obj$sctype
+pseudo_obj@active.ident <- factor(x = pseudo_obj@active.ident, levels = cell_levels)
+pseudo_obj <- NormalizeData(pseudo_obj)
+pseudo_obj <- ScaleData(pseudo_obj,features = rownames(pseudo_obj))
+```
+
+```{r}
+vs.GABA.markers <- FindMarkers(pseudo_obj, ident.1 = "Unknown", ident.2 = c("GABA IN"), test.use = "DESeq2")
+vs.ImmGlu.markers <- FindMarkers(pseudo_obj, ident.1 = "Unknown", ident.2 = c("Imm.GExN"), test.use = "DESeq2")
+vs.MGlu.markers <- FindMarkers(pseudo_obj, ident.1 = "Unknown", ident.2 = c("M.GExN"), test.use = "DESeq2")
+vs.all.markers <-FindMarkers(pseudo_obj, ident.1 = "Unknown", ident.2 = c("GABA IN","Imm.GExN","M.GExN"), test.use = "DESeq2")
+
+df_list <- c("vs.GABA.markers","vs.ImmGlu.markers","vs.MGlu.markers", "vs.all.markers")
+
+remove_na_padj <- function(deseq_result) {
+  return(deseq_result[!is.na(deseq_result$p_val_adj), ])
+}
+
+vs.GABA.markers <- remove_na_padj(vs.GABA.markers)
+vs.ImmGlu.markers <- remove_na_padj(vs.ImmGlu.markers)
+vs.MGlu.markers <- remove_na_padj(vs.MGlu.markers)
+vs.all.markers <- remove_na_padj(vs.all.markers)
+
+
+deg_matrix_df <- function(df, label) {
+  df %>%
+    filter(p_val_adj < 0.05) %>%
+    mutate(source = label)
+}
+sig.vs.GABA.markers <- deg_matrix_df (vs.GABA.markers, "vsGABA")
+sig.vs.ImmGlu.markers <- deg_matrix_df (vs.ImmGlu.markers, "vsImmGExN")
+sig.vs.MGlu.markers <- deg_matrix_df (vs.MGlu.markers, "vsMGExN")
+sig.vs.all.markers <- deg_matrix_df (vs.all.markers, "all")
+
+un_combined_markers <- bind_rows(sig.vs.GABA.markers, sig.vs.ImmGlu.markers, sig.vs.MGlu.markers,sig.vs.all.markers)
+write.csv(un_combined_markers, "unspecific_neuron_combined_markers.csv", row.names = TRUE)
+```
+
+```{r}
+library(ggrepel)
+create_volcano_plot <- function(deseq_result, title = "Volcano Plot", fc_threshold = 1, p_threshold = 0.05, top.n = 10) {
+  deseq_result <- within(deseq_result, {
+    DEG <- "Not significant"
+    DEG[avg_log2FC > fc_threshold & p_val_adj < p_threshold] <- "Upregulated"
+    DEG[avg_log2FC < -fc_threshold & p_val_adj < p_threshold] <- "Downregulated"
+    gene <- rownames(deseq_result)
+  })
+  top_up <- deseq_result %>%
+    filter(DEG == "Upregulated") %>%
+    top_n(top.n, avg_log2FC) %>%
+    pull(gene)
+
+  top_down <- deseq_result %>%
+    filter(DEG == "Downregulated") %>%
+    top_n(top.n, -avg_log2FC) %>%
+    pull(gene)
+  deseq_result$delabel <- ifelse(deseq_result$gene %in% c(top_up, top_down), deseq_result$gene, NA)
+  mycolors <- c("slateblue1", "tomato2", "grey")
+  names(mycolors) <- c("Downregulated", "Upregulated", "Not significant")
+  p <- ggplot(data=deseq_result, aes(x=avg_log2FC, y=-log10(p_val_adj), col=DEG, label=delabel)) +
+    geom_point(size =1.5, alpha = 0.5) + 
+    theme_classic() +
+    geom_text_repel(max.overlaps = Inf, size = 3) +
+    scale_color_manual(values=mycolors) +
+    geom_vline(xintercept=c(-fc_threshold, fc_threshold), col = "grey", linetype = 'dashed') +
+    geom_hline(yintercept=-log10(p_threshold), col = "grey", linetype = 'dashed') +
+    labs(x = expression("log"[2]*"FC"), y = "-log10(Adj. p-value)") +
+    ggtitle(title) +
+    theme(plot.title = element_text(hjust = 0.5))
+
+  return(p)
+}
+
+```
+
+```{r}
+vs.GABA.vp <- create_volcano_plot(vs.GABA.markers)
+vs.ImmGlu.vp <- create_volcano_plot(vs.ImmGlu.markers)
+vs.MGlu.vp <- create_volcano_plot(vs.MGlu.markers)
+vs.all.vp <- create_volcano_plot(vs.all.markers)
+```
