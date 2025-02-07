@@ -481,7 +481,7 @@ gc()
 
 Using motifmatchr to detect potential TF binding in TSS region of candidate genes.
 ```{r}
-gtf <- read.delim("~/Desktop/regulatory_network/Homo_sapiens.GRCh38.113.gtf", header=FALSE, comment.char="#")
+gtf <- read.delim("Homo_sapiens.GRCh38.113.gtf", header=FALSE, comment.char="#")
 # modify chromosome names in the gtf file to let it match chromosome names in the reference genome
 gtf[,1] <- paste0('chr',gtf[,1])
 gene_tss <- get_tss_region(gtf,rownames(Kmeans_clustering_ENS), upstream_length = 1000, downstream_length = 500)
@@ -496,9 +496,9 @@ filtered_regulatory_relationships <- filter_regulation_fimo(fimo_regulation, reg
 ```
 
 ```{r}
-gene_of_interest <- "ENSG00000131981"  # Replace with your gene's Ensembl ID
+gene_of_interest <- "ENSG00000131981" 
 potential_regulators <- filtered_regulatory_relationships[filtered_regulatory_relationships$Target == gene_of_interest, ]
-write.csv (potential_regulators, "~/Desktop/regulatory_network/LGALS3_potential_regulators.csv")
+write.csv (potential_regulators, "LGALS3_potential_regulators.csv")
 gene_tss_filtered <- gene_tss[gene_tss[,1] == gene_of_interest,]
 gene_tss_GR_filtered <- GRanges(
   seqnames = gene_tss_filtered[,2],
@@ -509,6 +509,24 @@ gene_tss_GR_filtered <- GRanges(
 )
 print(gene_tss_GR_filtered)
 ```
+
+
+motif enrichment analysis
+BiocManager::install(c("doMC", "doRNG"))
+BiocManager::install(c("DT", "visNetwork"))
+
+
+library(RcisTarget)
+geneLists <- list(geneListName=potential_regulators$TFSymbol)
+# Select motif database to use (i.e. organism and distance around TSS)
+data(motifAnnotations_hgnc)
+motifRankings <- importRankings("~/regulatory_network/hg38_10kbp_up_10kbp_down_full_tx_v10_clust.genes_vs_motifs.rankings.feather")
+
+# Motif enrichment analysis:
+motifEnrichmentTable_wGenes <- cisTarget(geneLists, motifRankings,
+                               motifAnnot=motifAnnotations)
+showLogo(motifAnnotations[(directAnnotation==TRUE) & keptInRanking 
+                               & (TF %in% potential_regulators$TFSymbol), ])
 
 ```{r}
 ranked_regulators <- combined_regulators[order(combined_regulators$weight, combined_regulators$pvalue),]
