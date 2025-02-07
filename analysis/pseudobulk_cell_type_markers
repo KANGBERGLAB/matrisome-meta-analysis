@@ -12,32 +12,6 @@ n_per_celltype <- table(pseudo_obj$sctype)
 n_per_celltype
 ```
 
-visualise number of donors per cell type
-```{r}
-n_per_celltype <- as.data.frame (table(pseudo_obj$sctype))
-n_per_celltype$Var1 <- factor(x = n_per_celltype$Var1, levels = cell_levels)
-n_per_celltype_bar <- ggplot(n_per_celltype, aes(x = Var1, y = Freq, fill = Var1)) +
-  geom_bar(stat = "identity") +
-  geom_text(aes(label = Freq), vjust = -0.5, color = "black", size = 3.5) +
-  scale_fill_manual(values = colpal) +
-  theme_clean() +
-  theme(
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
-    axis.title.x = element_blank(),  # This removes the x-axis label
-    axis.line = element_line(color = "black"),  # Add axis lines
-    panel.border = element_blank(),  # Remove panel border
-    axis.line.x = element_line(color = "black"),  # Ensure x-axis line is visible
-    axis.line.y = element_line(color = "black")   # Ensure y-axis line is visible
-  ) +
-  scale_y_continuous(expand = c(0, 0)) +  # This removes padding below the bars
-  ylim(0,45) +
-  coord_cartesian(clip = "off") +  # This allows bars to touch the x-axis
-  labs(y = "number of donors") +
-  guides(fill = FALSE)  # This removes the legend for fill color
-
-n_per_celltype_bar
-```
-
 # Get all unique cell types
 cell_types <- unique(Idents(pseudo_obj))
 
