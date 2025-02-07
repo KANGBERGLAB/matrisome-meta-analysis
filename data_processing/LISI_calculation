@@ -1,0 +1,14 @@
+validate integration and cell type annotation
+```{r}
+results <- calculate_LISI_scores(
+  object = merged_seurat,
+  batch = "study",
+  cluster.anno = "sctype"
+)
+
+cell_lisi_scores <- lisi_results$lisi_scores
+mean_iLISI <- lisi_results$mean_iLISI
+mean_cLISI <- lisi_results$mean_cLISI
+print(mean_iLISI)
+print(mean_cLISI)
+```
