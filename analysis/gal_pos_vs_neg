@@ -1,0 +1,151 @@
+## 12. Gal pos vs Gal neg DEG
+
+clear out ls
+```{r}
+rm(list = setdiff(ls(), "merged_seurat"))
+gc()
+```
+
+```{r}
+merged_seurat2 <- merged_seurat
+nsc <- c("vRG", "oRG", "tRG")
+gexn <- c("Imm.GExN","M.GExN")
+merged_seurat2$sctype2 <- ifelse(merged_seurat2$sctype %in% nsc, "NSC",
+                                ifelse (merged_seurat2$sctype %in% gexn, "GExN",
+                                as.character(merged_seurat2$sctype)))
+```
+
+```{r}
+avg_hopx <- AverageExpression(merged_seurat2, group.by = "sctype2", features = "HOPX")
+avg_hopx
+avg_lgals <- AverageExpression(merged_seurat2, group.by = "sctype2", features = "LGALS3")
+avg_lgals
+```
+
+subset hopx+ cells and label for LGALS3+ & LGALS3- and make pseudobulk matrix
+```{r}
+hopx_seurat <- subset (merged_seurat2, subset = HOPX > avg_hopx$integrated[,"NSC"])
+table (hopx_seurat$sctype2)
+
+Gal_Pos <- subset(merged_seurat2, subset = LGALS3 > 0)
+table (Gal_Pos$sctype2)
+
+hopx_seurat@meta.data$galpos <-
+  ifelse(
+    rownames(hopx_seurat@meta.data) %in% colnames(Gal_Pos),
+    "Gal3_pos",
+    "Gal3_neg"
+  )
+
+hopx_seurat[["RNA"]] <- JoinLayers(hopx_seurat[["RNA"]])
+pseudo_obj <- AggregateExpression(hopx_seurat, assays = "RNA", return.seurat = T, group.by = c("galpos", "donor"))
+table(pseudo_obj$galpos)
+```
+
+
+```{r}
+library(Seurat)
+library(DESeq2)
+library(dplyr)
+
+# Assuming 'seurat_obj' is your Seurat object and 'condition' is the variable of interest
+
+# 1. Export count matrix from Seurat object
+counts <- GetAssayData(pseudo_obj, slot = "counts")
+
+# 2. Create a sample information dataframe
+cell_metadata <- pseudo_obj@meta.data
+sample_info <- data.frame(
+  condition = cell_metadata$galpos,
+  row.names = colnames(counts)
+)
+
+# 3. Create DESeqDataSet object
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = sample_info,
+                              design = ~ condition)
+
+# 4. Filter low count genes
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+
+# 5. Run DESeq2
+dds <- DESeq(dds)
+
+# 6. Get results
+res <- results(dds)
+
+# 7. Create a dataframe with log2FC and adjusted p-values
+de_genes <- as.data.frame(res) %>%
+  dplyr::select(log2FoldChange, padj) %>%
+  dplyr::arrange(padj)
+
+# 8. Remove rows with NA values
+de_genes <- na.omit(de_genes)
+
+# 9. Add gene names as a column
+de_genes$gene <- rownames(de_genes)
+
+# 10. Reorder columns
+de_genes <- de_genes %>% dplyr::select(gene, log2FoldChange, padj)
+print(head(de_genes))
+
+```
+
+```{r}
+create_volcano_plot <- function(deseq_result, title = "Volcano Plot", fc_threshold = 1, p_threshold = 0.05, top.n = 10) {
+  library(ggrepel)
+  library(ggplot2)
+  library(dplyr)
+
+  deseq_result <- within(deseq_result, {
+    DEG <- "Not significant"
+    DEG[log2FoldChange > fc_threshold & padj < p_threshold] <- "Upregulated"
+    DEG[log2FoldChange < -fc_threshold & padj < p_threshold] <- "Downregulated"
+    gene <- rownames(deseq_result)
+  })
+  
+  top_up <- deseq_result %>%
+    filter(DEG == "Upregulated") %>%
+    top_n(top.n, log2FoldChange) %>%
+    pull(gene)
+
+  top_down <- deseq_result %>%
+    filter(DEG == "Downregulated") %>%
+    top_n(top.n, -log2FoldChange) %>%
+    pull(gene)
+  
+  deseq_result$delabel <- ifelse(deseq_result$gene %in% c(top_up, top_down), deseq_result$gene, NA)
+  
+  mycolors <- c("slateblue1", "tomato2", "grey")
+  names(mycolors) <- c("Downregulated", "Upregulated", "Not significant")
+  
+  p <- ggplot(data=deseq_result, aes(x=log2FoldChange, y=-log10(padj), col=DEG, label=delabel)) +
+    geom_point(size =1.5, alpha = 0.5) + 
+    theme_classic() +
+    geom_text_repel(
+      max.overlaps = Inf, 
+      size = 3,
+      box.padding = 0.5,
+      point.padding = 0.3,
+      segment.color = "grey50",
+      segment.size = 0.2,
+      arrow = arrow(length = unit(0.01, "npc")),
+      bg.color = "white",
+      bg.r = 0.15
+    ) +
+    scale_color_manual(values=mycolors) +
+    geom_vline(xintercept=c(-fc_threshold, fc_threshold), col = "grey", linetype = 'dashed') +
+    geom_hline(yintercept=-log10(p_threshold), col = "grey", linetype = 'dashed') +
+    labs(x = expression("log"[2]*"FC"), y = "-log10(Adj. p-value)") +
+    ggtitle(title) +
+    theme(plot.title = element_text(hjust = 0.5))
+
+  return(p)
+}
+```
+
+```{r}
+gal.de_genes.vp <- create_volcano_plot(de_genes)
+gal.de_genes.vp
+```
