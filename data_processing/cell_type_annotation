@@ -1,0 +1,194 @@
+## visualise integration
+study_col <- c ("royalblue1", "olivedrab1", "tomato1", "burlywood2", "lightskyblue1", "pink")
+
+highlight_dim <- list()
+
+
+study_name <- c('bhaduri', 'bruggen', 'cameron', 'eze', 'trevino', 'zhong')
+
+
+
+highlight_dim <- list()
+for (i in seq_along(study_name)) {
+  cell_name <- study_name[i]
+  study_cells <- which (merged_seurat$study == cell_name)
+  plot <- DimPlot(merged_seurat, label = F,
+                  cells.highlight = study_cells,
+                  cols.highlight = study_col[i],
+                  cols = "grey",
+                  sizes.highlight = 0.7,
+                  raster = F) + NoLegend() + ggtitle("")+NoAxes()
+  highlight_dim [[cell_name]] <- plot
+}
+plot_grid(highlight_dim[[1]],highlight_dim[[2]],highlight_dim[[3]],highlight_dim[[4]],highlight_dim[[5]],highlight_dim[[6]], ncol = 3)
+
+## 1. Cell type annotation
+
+gene set prep function
+```{r}
+gene_sets_prepare_fixed <- function(path_to_db_file, cell_type){
+  
+  cell_markers = path_to_db_file
+  cell_markers = cell_markers[cell_markers$tissueType == cell_type,] 
+  cell_markers$pos_marker = gsub(" ","",cell_markers$pos_marker); cell_markers$neg_marker = gsub(" ","",cell_markers$neg_marker)
+  
+  # correct gene symbols from the given DB (up-genes)
+  cell_markers$pos_marker = sapply(1:nrow(cell_markers), function(i){
+    
+    markers_all = gsub(" ", "", unlist(strsplit(cell_markers$pos_marker[i],",")))
+    markers_all = toupper(markers_all[markers_all != "NA" & markers_all != ""])
+    markers_all = sort(markers_all)
+    
+    if(length(markers_all) > 0){
+      suppressMessages({markers_all = unique(na.omit(checkGeneSymbols(markers_all)$Suggested.Symbol))})
+      paste0(markers_all, collapse=",")
+    } else {
+      ""
+    }
+  })
+  
+  # correct gene symbols from the given DB (down-genes)
+  cell_markers$neg_marker = sapply(1:nrow(cell_markers), function(i){
+    
+    markers_all = gsub(" ", "", unlist(strsplit(cell_markers$neg_marker[i],",")))
+    markers_all = toupper(markers_all[markers_all != "NA" & markers_all != ""])
+    markers_all = sort(markers_all)
+    
+    if(length(markers_all) > 0){
+      suppressMessages({markers_all = unique(na.omit(checkGeneSymbols(markers_all)$Suggested.Symbol))})
+      paste0(markers_all, collapse=",")
+    } else {
+      ""
+    }
+  })
+  
+  cell_markers$pos_marker = gsub("///",",",cell_markers$pos_marker);cell_markers$pos_marker = gsub(" ","",cell_markers$pos_marker)
+  cell_markers$neg_marker = gsub("///",",",cell_markers$neg_marker);cell_markers$neg_marker = gsub(" ","",cell_markers$neg_marker)
+   
+  gs = lapply(1:nrow(cell_markers), function(j) gsub(" ","",unlist(strsplit(toString(cell_markers$pos_marker[j]),",")))); names(gs) = cell_markers$cellName
+  gs2 = lapply(1:nrow(cell_markers), function(j) gsub(" ","",unlist(strsplit(toString(cell_markers$neg_marker[j]),",")))); names(gs2) = cell_markers$cellName
+  
+  list(gs_positive = gs, gs_negative = gs2)
+}
+
+```
+
+
+
+
+score function
+```{r}
+sctype_score <- function(scRNAseqData, scaled = !0, gs, gs2 = NULL, gene_names_to_uppercase = !0, ...){
+  
+  # check input matrix
+  if(!is.matrix(scRNAseqData)){
+    warning("scRNAseqData doesn't seem to be a matrix")
+  } else {
+    if(sum(dim(scRNAseqData))==0){
+       warning("The dimension of input scRNAseqData matrix equals to 0, is it an empty matrix?")
+    }
+  }
+  
+  # marker sensitivity
+  marker_stat = sort(table(unlist(gs)), decreasing = T); 
+  marker_sensitivity = data.frame(score_marker_sensitivity = scales::rescale(as.numeric(marker_stat), to = c(0,1), from = c(length(gs),1)),
+                                      gene_ = names(marker_stat), stringsAsFactors = !1)
+
+  # convert gene names to Uppercase
+  if(gene_names_to_uppercase){
+    rownames(scRNAseqData) = toupper(rownames(scRNAseqData));
+  }
+  
+  # subselect genes only found in data
+  names_gs_cp = names(gs); names_gs_2_cp = names(gs2);
+  gs = lapply(1:length(gs), function(d_){ 
+    GeneIndToKeep = rownames(scRNAseqData) %in% as.character(gs[[d_]]); rownames(scRNAseqData)[GeneIndToKeep]})
+  gs2 = lapply(1:length(gs2), function(d_){ 
+    GeneIndToKeep = rownames(scRNAseqData) %in% as.character(gs2[[d_]]); rownames(scRNAseqData)[GeneIndToKeep]})
+  names(gs) = names_gs_cp; names(gs2) = names_gs_2_cp;
+  cell_markers_genes_score = marker_sensitivity[marker_sensitivity$gene_ %in% unique(unlist(gs)),]
+  
+  # z-scale if not
+  if(!scaled) Z <- t(scale(t(scRNAseqData))) else Z <- scRNAseqData
+  
+  # multiple by marker sensitivity
+  for(jj in 1:nrow(cell_markers_genes_score)){
+    Z[cell_markers_genes_score[jj,"gene_"], ] = Z[cell_markers_genes_score[jj,"gene_"], ] * cell_markers_genes_score[jj, "score_marker_sensitivity"]
+  }
+  
+  # subselect only with marker genes
+  Z = Z[unique(c(unlist(gs),unlist(gs2))), ]
+  
+  # combine scores
+  es = do.call("rbind", lapply(names(gs), function(gss_){ 
+    sapply(1:ncol(Z), function(j) {
+      gs_z = Z[gs[[gss_]], j]; gz_2 = Z[gs2[[gss_]], j] * -1
+      sum_t1 = (sum(gs_z) / sqrt(length(gs_z))); sum_t2 = sum(gz_2) / sqrt(length(gz_2));
+      if(is.na(sum_t2)){
+        sum_t2 = 0;
+      }
+      sum_t1 + sum_t2
+    })
+  })) 
+  
+  dimnames(es) = list(names(gs), colnames(Z))
+  es.max <- es[!apply(is.na(es) | es == "", 1, all),] # remove na rows
+ 
+  es.max
+}
+
+```
+
+
+load cell type marker db
+```{r}
+db_ <- read.csv ("st2_cell_type_markers.csv", header = T, sep = ",")
+gs_list = gene_sets_prepare_fixed(db_, "Brain")
+```
+
+score cell type
+```{r}
+library(dplyr)
+# get cell-type by cell matrix
+es.max = sctype_score(scRNAseqData = merged_seurat[["integrated"]]@scale.data, scaled = TRUE, 
+                      gs = gs_list$gs_positive, gs2 = gs_list$gs_negative) 
+
+
+# merge by cluster
+cl_score = do.call("rbind", lapply(unique(merged_seurat@meta.data$seurat_clusters), function(cl){
+    es.max.cl = sort(rowSums(es.max[ ,rownames(merged_seurat@meta.data[merged_seurat@meta.data$seurat_clusters==cl, ])]), decreasing = !0)
+    head(data.frame(cluster = cl, type = names(es.max.cl), scores = es.max.cl, ncells = sum(merged_seurat@meta.data$seurat_clusters==cl)), 10)
+}))
+sctype_scores = cl_score %>% group_by(cluster) %>% top_n(n = 1, wt = scores)  
+
+# set low-confident (low ScType score) clusters to "unknown"
+sctype_scores$type[as.numeric(as.character(sctype_scores$scores)) < sctype_scores$ncells/4] = "Unknown"
+print(sctype_scores[,1:3])
+```
+
+
+annotate and plot
+```{r}
+merged_seurat@meta.data$sctype = ""
+for(j in unique(sctype_scores$cluster)){
+  cl_type = sctype_scores[sctype_scores$cluster==j,]; 
+  merged_seurat@meta.data$sctype[merged_seurat@meta.data$seurat_clusters == j] = as.character(cl_type$type[1])
+}
+
+DimPlot(merged_seurat, reduction = "umap", label = TRUE, repel = TRUE, group.by = 'sctype') + NoAxes() + ggtitle("")      
+```
+
+```{r}
+celltypes <- as.data.frame(table(merged_seurat$sctype))
+celltypes$Var1
+length(celltypes$Var1)
+```
+
+```{r}
+colpal <- c ("#C7EBB1", "#FFD5FF", "#34854D", "#DEB0B0","#F26378", "#CA2F40", "#81B1DE","#C58862", "#7F517D", "#33608C", "#F5CA61", "#49525E")
+cell_levels <- c("vRG","oRG","tRG", "IPC", "Imm.GExN","M.GExN","Unknown","GABA IN","Astrocyte","OPC","Microglia","Endothelial")
+merged_seurat$sctype <- factor(x = merged_seurat$sctype, levels = cell_levels)
+
+DimPlot(merged_seurat, reduction = "umap", label = TRUE, repel = TRUE, group.by = 'sctype', cols = colpal) + ggtitle("")
+DimPlot(merged_seurat, reduction = "umap", label = TRUE, repel = TRUE, group.by = 'seurat_clusters') + ggtitle("") 
+```
