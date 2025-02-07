@@ -106,3 +106,104 @@ top10_neurolin_markers <- final_results %>%
   group_by(cell_type) %>%
   top_n(10,log2FoldChange)
 ```
+
+```{r}
+neurolin_markers <- final_results %>%
+  filter(log2FoldChange >= 0)
+
+neurolin_matrisome_markers <- subset (neurolin_markers, subset = neurolin_markers$gene %in% matrisome_list)
+top10_neurolin_matrisome_markers <- neurolin_matrisome_markers %>%
+  filter(padj < 0.05) %>%
+  group_by(cell_type) %>%
+  top_n(10,log2FoldChange)
+write.csv (neurolin_matrisome_markers,"neurolin_matrisome_markers.csv") 
+table(duplicated(neurolin_matrisome_markers$gene))
+```
+core_matrisome <- subset(matrisome, subset = Division == "Core matrisome")
+associated_matrisome <- subset(matrisome, subset = Division == "Matrisome-associated")
+
+# extrarct gene symbol 
+core_matrisome_list <- core_matrisome$Gene_Symbol
+associated_matrisome_list <- associated_matrisome$Gene_Symbol
+
+core_neurogen_markers <- subset (neurolin_markers, gene %in% core_matrisome_list)
+asso_neurogen_markers <- subset (neurolin_markers, gene %in% associated_matrisome_list)
+
+core_neurogen_t10_markers <- core_neurogen_markers %>%
+  group_by(cell_type) %>%
+  filter(padj < 0.05 & log2FoldChange > 1) %>%
+  top_n(10, log2FoldChange)
+
+asso_neurogen_t10_markers <- asso_neurogen_markers %>%
+  group_by(cell_type) %>%
+  filter(padj < 0.05 & log2FoldChange > 1) %>%
+  top_n(10, log2FoldChange)
+
+
+visualise on heatmap
+```{r}
+merged_seurat2 <- merged_seurat
+merged_seurat2[["RNA"]] <- JoinLayers(merged_seurat2[["RNA"]])
+Idents(merged_seurat2) <- merged_seurat2$seurat_clusters
+pseudo_seurat <- AggregateExpression(merged_seurat2, assays = "RNA", return.seurat = T, group.by ="sctype2")
+pseudo_mat <- GetAssayData(object = pseudo_seurat, assay = "RNA")
+pseudo_mat <- pseudo_mat [,c("NSC", "IPC", "GExN")]
+
+genes <- core_neurogen_t10_markers$gene
+  
+mat<- pseudo_mat[genes, ] %>% as.matrix()
+mat<- t(scale(t(mat)))
+head(mat)
+cluster_anno<- colnames(pseudo_mat)
+myCol <- colorRampPalette(c('dodgerblue', 'black', 'yellow'))(50)
+myBreaks <- seq(-2, 2, length.out = 50)
+colpal <- c ("#A9C2AA", "#DEB0B0","#DE495C")
+
+
+neurolin_core_mat_ht <- Heatmap(mat, name = "Expression",  
+        column_split = factor(cluster_anno, levels = c("NSC", "IPC", "GExN")),
+        cluster_columns = FALSE,
+        show_column_dend = FALSE,
+        cluster_column_slices = TRUE,
+        column_title_gp = gpar(fontsize = 12),
+        column_gap = unit(0.5, "mm"),
+        cluster_rows = FALSE,
+        row_order = core_neurogen_t10_markers$gene,
+        show_row_dend = FALSE,
+        col = colorRamp2(myBreaks, myCol),
+        row_names_gp = gpar(fontsize = 12),
+        column_title_rot = 90,
+        top_annotation = HeatmapAnnotation(foo = anno_block(gp = gpar(fill = colpal))),
+        show_column_names = FALSE,
+        use_raster = TRUE)
+neurolin_core_mat_ht
+```
+
+```{r}
+genes <- asso_neurogen_t10_markers$gene
+  
+mat<- pseudo_mat[genes, ] %>% as.matrix()
+mat<- t(scale(t(mat)))
+head(mat)
+cluster_anno<- colnames(pseudo_mat)
+myCol <- colorRampPalette(c('dodgerblue', 'black', 'yellow'))(50)
+myBreaks <- seq(-2, 2, length.out = 50)
+
+neurolin_asso_mat_ht <- Heatmap(mat, name = "Expression",  
+        column_split = factor(cluster_anno, levels = c("NSC", "IPC", "GExN")),
+        cluster_columns = FALSE,
+        show_column_dend = FALSE,
+        cluster_column_slices = TRUE,
+        column_title_gp = gpar(fontsize = 12),
+        column_gap = unit(0.5, "mm"),
+        cluster_rows = FALSE,
+        row_order = asso_neurogen_t10_markers$gene,
+        show_row_dend = FALSE,
+        col = colorRamp2(myBreaks, myCol),
+        row_names_gp = gpar(fontsize = 12),
+        column_title_rot = 90,
+        top_annotation = HeatmapAnnotation(foo = anno_block(gp = gpar(fill = colpal))),
+        show_column_names = FALSE,
+        use_raster = TRUE)
+neurolin_asso_mat_ht
+```
