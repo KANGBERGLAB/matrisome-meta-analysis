@@ -52,7 +52,53 @@ p <- ggplot(freq_table, aes(x = cell_type, y = count, fill = trimester)) +
   labs(title = "Frequency of DEGs by Cell Type and Trimester", x = "Cell Type", y = "Frequency of DEGs") +
   theme_clean() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+temporal expression dynamic analysis
+clear out ls
+```{r}
+rm(list = setdiff(ls(), "merged_seurat"))
+gc()
+```
 
+```{r}
+first <- c(8, 9, 10, 10.5, 11, 12)
+early_second <- c(13, 15, 16, 17, 18, 19)
+mid_second <- c(20, 22, 23, 25, 26)
+
+merged_seurat2 <- merged_seurat
+table(merged_seurat2$gestation)
+merged_seurat2$trimester <- ifelse(merged_seurat2$gestation %in% first, "first",
+                                   ifelse(merged_seurat2$gestation %in% early_second, "early",
+                                          "mid"))
+table(merged_seurat2$trimester)
+
+nsc <- c("vRG", "oRG", "tRG")
+merged_seurat2$sctype2 <- ifelse(merged_seurat2$sctype %in% nsc, "NSC",
+                                as.character(merged_seurat2$sctype))
+
+matrisome <- read.table("Hs_Matrisome_Masterlist.csv", header = T, sep = ',')
+#extract gene symbols
+matrisome_list <- matrisome$Gene_Symbol
+
+```
 print(p)
 
+```
+
+```{r}
+project_dir <-  "~/temporal_expression_analysis_results"
+
+results <- analyze_temporal_patterns (
+  merged_seurat2,
+  project_dir,
+  split.by = c("NSC", "IPC", "Imm.GExN", "M.GExN",
+                      "Unknown", "GABA IN", "Astrocyte", "OPC", 
+                      "Microglia", "Endothelial"),
+  trend.in = "trimester",
+  trend.order = c("first", "early", "mid"),
+  pseudobulk.by = "donor",
+  suppress.warnings = TRUE
+)
+
+print(results$plot)
+print(results$rankings)
 ```
