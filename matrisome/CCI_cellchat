@@ -1,0 +1,171 @@
+## 16. Cell to cell interaction analysis
+clear out ls
+```{r}
+rm(list = setdiff(ls(), "merged_seurat"))
+gc()
+```
+
+prepare data and scRNA-seq matrix
+```{r}
+matrisome <- read.table("Hs_Matrisome_Masterlist.csv", header = T, sep = ',')
+#extract gene symbols
+matrisome_list <- matrisome$Gene_Symbol
+
+merged_seurat[["RNA"]] <- JoinLayers(merged_seurat[["RNA"]])
+raw_mat <- GetAssayData(object = merged_seurat, assay = "RNA")
+meta = merged_seurat@meta.data
+cell.use = rownames(meta)
+unique(meta$sctype)
+
+matrisome_feat <- intersect(rownames(merged_seurat$RNA), matrisome_list)
+matrisome_mat<- raw_mat[matrisome_feat, ] %>%
+  as.matrix()
+```
+
+
+Import matrix to cellchat matrix and load CellChat DB
+```{r}
+library(CellChat)
+cellchat <- createCellChat(object = matrisome_mat, meta = meta, group.by = "sctype")
+CellChatDB <- CellChatDB.human
+showDatabaseCategory(CellChatDB)
+CellChatDB.use <- CellChatDB
+cellchat@DB <- CellChatDB.use
+
+
+cellchat <- subsetData(cellchat)
+future::plan("multisession", workers = 4) # do parallel
+options(future.globals.maxSize = +Inf)
+
+cellchat <- identifyOverExpressedGenes(cellchat)
+cellchat <- identifyOverExpressedInteractions(cellchat)
+gc()
+```
+
+Compute CCI network
+```{r}
+ptm = Sys.time()
+cellchat <- computeCommunProb(cellchat, type = "triMean")
+cellchat <- filterCommunication(cellchat, min.cells = 10)
+cellchat <- computeCommunProbPathway(cellchat)
+cellchat <- aggregateNet(cellchat)
+execution.time = Sys.time() - ptm
+print(as.numeric(execution.time, units = "secs"))
+cci_strength <- as.data.frame(cellchat@net$weight)
+cci_strength
+```
+
+Visualise
+```{r}
+colpal <- c("#C7EBB1", "#FFD5FF", "#34854D", "#DEB0B0","#F26378", "#CA2F40", "#81B1DE","#C58862", "#7F517D", "#33608C", "#F5CA61", "#49525E")
+cell_groups <- levels(cellchat@idents)
+color.use <- setNames(colpal[1:length(cell_groups)], cell_groups)
+groupSize <- as.numeric(table(cellchat@idents))
+par(mfrow = c(1,2), xpd=TRUE)
+netVisual_circle(cellchat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions", color.use = color.use)
+netVisual_circle(cellchat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength", color.use = color.use)
+```
+
+```{r}
+mat <- cellchat@net$weight
+par(mfrow = c(3,4), xpd=TRUE)
+for (i in 1:nrow(mat)) {
+  mat2 <- matrix(0, nrow = nrow(mat), ncol = ncol(mat), dimnames = dimnames(mat))
+  mat2[i, ] <- mat[i, ]
+  netVisual_circle(mat2, vertex.weight = groupSize, weight.scale = T, edge.weight.max = max(mat), title.name = rownames(mat)[i])
+}
+
+
+plots <- lapply(1:nrow(mat), function(i) {
+  mat2 <- matrix(0, nrow = nrow(mat), ncol = ncol(mat), dimnames = dimnames(mat))
+  mat2[i, ] <- mat[i, ]
+  p <- netVisual_circle(mat2, vertex.weight = groupSize, weight.scale = TRUE, edge.weight.max = max(mat), title.name = rownames(mat)[i])
+  return(p)
+})
+
+# Arrange the plots in a grid
+#plot_grid(plotlist = plots, ncol = 4)
+
+cellchat@netP$pathways
+```
+
+```{r}
+pathways.show <- c("PTN") 
+# Hierarchy plot
+# Here we define `vertex.receive` so that the left portion of the hierarchy plot shows signaling to fibroblast and the right portion shows signaling to immune cells 
+vertex.receiver = seq(1,4) # a numeric vector. 
+netVisual_aggregate(cellchat, signaling = pathways.show,  vertex.receiver = vertex.receiver)
+# Circle plot
+par(mfrow=c(1,1))
+netVisual_aggregate(cellchat, signaling = pathways.show, layout = "circle")
+```
+
+```{r}
+ptn_chord <- netVisual_aggregate(cellchat, signaling = pathways.show, layout = "chord", color.use = colpal)
+ptn_ht <- netVisual_heatmap(cellchat, signaling = pathways.show, color.heatmap = "Reds", color.use = colpal)
+```
+
+
+```{r}
+pathways.show <- c("MK") 
+# Hierarchy plot
+# Here we define `vertex.receive` so that the left portion of the hierarchy plot shows signaling to fibroblast and the right portion shows signaling to immune cells 
+vertex.receiver = seq(1,4) # a numeric vector. 
+netVisual_aggregate(cellchat, signaling = pathways.show,  vertex.receiver = vertex.receiver)
+# Circle plot
+par(mfrow=c(1,1))
+netVisual_aggregate(cellchat, signaling = pathways.show, layout = "circle")
+```
+
+
+```{r}
+mk_chord <- netVisual_aggregate(cellchat, signaling = pathways.show, layout = "chord", color.use = colpal)
+mk_ht <- netVisual_heatmap(cellchat, signaling = pathways.show, color.heatmap = "Reds", color.use = colpal)
+```
+
+```{r}
+pathways.show <- c("SEMA6") 
+# Hierarchy plot
+# Here we define `vertex.receive` so that the left portion of the hierarchy plot shows signaling to fibroblast and the right portion shows signaling to immune cells 
+vertex.receiver = seq(1,4) # a numeric vector. 
+netVisual_aggregate(cellchat, signaling = pathways.show,  vertex.receiver = vertex.receiver)
+# Circle plot
+par(mfrow=c(1,1))
+netVisual_aggregate(cellchat, signaling = pathways.show, layout = "circle")
+```
+
+
+```{r}
+sema6_chord <- netVisual_aggregate(cellchat, signaling = pathways.show, layout = "chord", color.use = colpal)
+sema6_ht<- netVisual_heatmap(cellchat, signaling = pathways.show, color.heatmap = "Reds", color.use = colpal)
+```
+
+Analyse contributions
+```{r}
+pathways <- cellchat@netP$pathways
+all_contributions <- list()
+for (pathway in pathways) {
+  contribution_data <- netAnalysis_contribution(cellchat, signaling = pathway, return.data = TRUE, thresh = 0.05)
+  lr_contribution <- contribution_data$LR.contribution
+  lr_contribution$pathway <- pathway  # Add a column to indicate the pathway
+  all_contributions[[pathway]] <- lr_contribution
+}
+
+combined_lr_contribution_df <- do.call(rbind, all_contributions)
+
+
+netAnalysis_contribution(cellchat, signaling = "PTN")
+netAnalysis_contribution(cellchat, signaling = "MK")
+netAnalysis_contribution(cellchat, signaling = "SEMA6")
+```
+
+bubble plot
+```{r}
+prob <- cellchat@net$prob
+pval <- cellchat@net$pval
+df <- reshape2::melt(prob)
+df.p <- reshape2::melt(pval)
+df$Pvalue <- df.p$value
+colnames(df) <- c("Source", "Target", "LR_pair","Probability","p_value")
+netVisual_bubble(cellchat)
+```
