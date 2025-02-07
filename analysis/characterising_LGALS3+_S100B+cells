@@ -1,0 +1,242 @@
+## 10. Characterisation of LGALS3+HOPX+ cells and S100B+OLIG2+ cells
+
+clear out ls
+```{r}
+rm(list = setdiff(ls(), "merged_seurat"))
+gc()
+```
+
+
+```{r}
+merged_seurat2 <- merged_seurat
+nsc <- c("vRG", "oRG", "tRG")
+gexn <- c("Imm.GExN","M.GExN")
+merged_seurat2$sctype2 <- ifelse(merged_seurat2$sctype %in% nsc, "NSC",
+                                ifelse (merged_seurat2$sctype %in% gexn, "GExN",
+                                as.character(merged_seurat2$sctype)))
+
+merged_seurat2[["RNA"]] <- JoinLayers(merged_seurat2[["RNA"]])
+pseudo_obj <- AggregateExpression(merged_seurat2, assays = "RNA", return.seurat = T, group.by = c("sctype2", "donor"))
+table(pseudo_obj$sctype2)
+Idents(pseudo_obj) <- pseudo_obj$sctype2
+cell_levels <- c("NSC", "IPC", "GExN","Unknown","GABA IN","Astrocyte","OPC","Microglia","Endothelial")
+pseudo_obj@active.ident <- factor(x = pseudo_obj@active.ident, levels = cell_levels)
+```
+
+```{r}
+avg_hopx <- AverageExpression(merged_seurat2, group.by = "sctype2", features = "HOPX")
+avg_hopx
+avg_lgals <- AverageExpression(merged_seurat2, group.by = "sctype2", features = "LGALS3")
+avg_lgals
+```
+
+
+
+subset hopx+ cells and label for LGALS3+ & LGALS3-
+```{r}
+hopx_seurat <- subset (merged_seurat2, subset = HOPX > avg_hopx$integrated[,"NSC"])
+table (hopx_seurat$sctype2)
+
+Gal_Pos <- subset(merged_seurat2, subset = LGALS3 > 0)
+table (Gal_Pos$sctype2)
+
+hopx_seurat@meta.data$galpos <-
+  ifelse(
+    rownames(hopx_seurat@meta.data) %in% colnames(Gal_Pos),
+    "Gal3_pos",
+    "Gal3_neg"
+  )
+```
+
+visualise the proportion of LGALS3+ cells in HOPX+ cells
+```{r}
+gal_df <- data.frame(table(hopx_seurat$galpos))
+
+# Calculate percentage
+gal_df$percentage <- gal_df$Freq / sum(gal_df$Freq) * 100
+gal_df$pct <- round (gal_df$percentage, digit =1)
+
+
+pie(gal_df$percentage, labels = paste (gal_df$Var1, sep = ' ', gal_df$pct, '%'),
+    main = "Proportion of LGALS3+ cells",
+    col = c("tomato1", "slateblue1"))
+
+```
+
+visualise cell types in LGALS3+ HOPX+ cells
+```{r}
+hopx_gal_pos_seurat <- subset(hopx_seurat, galpos == "Gal3_pos")
+
+celltype_df <- data.frame(table(hopx_gal_pos_seurat$sctype))
+
+# Calculate percentage
+celltype_df$percentage <- celltype_df$Freq / sum(celltype_df$Freq) * 100
+celltype_df$pct <- round (celltype_df$percentage, digit =1)
+
+
+pie(celltype_df$percentage, labels = paste (celltype_df$Var1, sep = ' ', celltype_df$pct, '%'),
+    main = "LGALS3 high cell types")
+
+top_n <- 3
+df_top <- celltype_df %>% 
+  arrange(desc(percentage)) %>% 
+  slice(1:top_n)
+
+# Identify and aggregate the "others"
+df_others <- celltype_df %>% 
+  arrange(desc(percentage)) %>% 
+  slice((top_n + 1):n()) %>% 
+  summarise(Var1 = "others", percentage = sum(percentage))
+
+# Combine the top 3 and "others"
+celltype_df <- bind_rows(df_top, df_others)
+celltype_df$pct <- round (celltype_df$percentage, digit =1)
+
+pie(celltype_df$percentage, labels = paste (celltype_df$Var1, sep = ' ', celltype_df$pct, '%'),
+    main = "LGALS3 high cell types")
+```
+
+
+
+```{r}
+study_cells <- which(rownames(merged_seurat2@meta.data) %in% colnames(hopx_gal_pos_seurat))
+  
+gal_hopx_plot <- DimPlot(merged_seurat2, label = FALSE,
+                  cells.highlight = study_cells,
+                  cols.highlight = 'deeppink1',
+                  pt.size = 0.1,
+                  sizes.highlight = 0.05,
+                  cols = "lightgrey",
+                  raster = FALSE) + ggtitle("") + NoLegend()
+gal_hopx_plot
+```
+
+
+visualise gal+ cell types
+```{r}
+celltype_df <- data.frame(table(Gal_Pos$sctype))
+
+# Calculate percentage
+celltype_df$percentage <- celltype_df$Freq / sum(celltype_df$Freq) * 100
+celltype_df$pct <- round (celltype_df$percentage, digit =1)
+
+
+pie(celltype_df$percentage, labels = paste (celltype_df$Var1, sep = ' ', celltype_df$pct, '%'),
+    main = "LGALS3 high cell types")
+
+top_n <- 3
+df_top <- celltype_df %>% 
+  arrange(desc(percentage)) %>% 
+  slice(1:top_n)
+
+# Identify and aggregate the "others"
+df_others <- celltype_df %>% 
+  arrange(desc(percentage)) %>% 
+  slice((top_n + 1):n()) %>% 
+  summarise(Var1 = "others", percentage = sum(percentage))
+
+# Combine the top 3 and "others"
+celltype_df <- bind_rows(df_top, df_others)
+celltype_df$pct <- round (celltype_df$percentage, digit =1)
+
+pie(celltype_df$percentage, labels = paste (celltype_df$Var1, sep = ' ', celltype_df$pct, '%'),
+    main = "LGALS3 high cell types")
+```
+
+
+
+
+clear out ls
+```{r}
+rm(list = setdiff(ls(), "merged_seurat"))
+gc()
+```
+
+
+```{r}
+merged_seurat2 <- merged_seurat
+nsc <- c("vRG", "oRG", "tRG")
+gexn <- c("Imm.GExN","M.GExN")
+merged_seurat2$sctype2 <- ifelse(merged_seurat2$sctype %in% nsc, "NSC",
+                                ifelse (merged_seurat2$sctype %in% gexn, "GExN",
+                                as.character(merged_seurat2$sctype)))
+
+merged_seurat2[["RNA"]] <- JoinLayers(merged_seurat2[["RNA"]])
+pseudo_obj <- AggregateExpression(merged_seurat2, assays = "RNA", return.seurat = T, group.by = c("sctype2", "donor"))
+table(pseudo_obj$sctype2)
+Idents(pseudo_obj) <- pseudo_obj$sctype2
+cell_levels <- c("NSC", "IPC", "GExN","Unknown","GABA IN","Astrocyte","OPC","Microglia","Endothelial")
+pseudo_obj@active.ident <- factor(x = pseudo_obj@active.ident, levels = cell_levels)
+```
+
+```{r}
+avg_olig <- AverageExpression(merged_seurat2, group.by = "sctype2", features = "OLIG2")
+avg_olig
+avg_s100b <- AverageExpression(merged_seurat2, group.by = "sctype2", features = "S100B")
+avg_s100b
+```
+
+
+subset OLIG2+ cells and label for S100B+ & S100B-
+```{r}
+olig2_seurat <- subset (merged_seurat2, subset = OLIG2 > avg_olig$integrated[,"OPC"])
+table (olig2_seurat$sctype2)
+
+s100b_Pos <- subset(merged_seurat2, subset = S100B > 0)
+table (s100b_Pos$sctype2)
+
+olig2_seurat@meta.data$s100bpos <-
+  ifelse(
+    rownames(olig2_seurat@meta.data) %in% colnames(s100b_Pos),
+    "S100B_pos",
+    "S100B_neg"
+  )
+```
+
+visualise the proportion of S100B+ cells in OLIG2+ cells
+```{r}
+gal_df <- data.frame(table(olig2_seurat$s100bpos))
+
+# Calculate percentage
+gal_df$percentage <- gal_df$Freq / sum(gal_df$Freq) * 100
+gal_df$pct <- round (gal_df$percentage, digit =1)
+
+
+pie(gal_df$percentage, labels = paste (gal_df$Var1, sep = ' ', gal_df$pct, '%'),
+    main = "Proportion of S100B+ cells",
+    col = c("tomato1", "slateblue1"))
+
+```
+
+visualise cell types in LGALS3+ HOPX+ cells
+```{r}
+olig_s100b_pos_seurat <- subset(olig2_seurat, s100bpos == "S100B_pos")
+
+celltype_df <- data.frame(table(olig_s100b_pos_seurat$sctype))
+
+# Calculate percentage
+celltype_df$percentage <- celltype_df$Freq / sum(celltype_df$Freq) * 100
+celltype_df$pct <- round (celltype_df$percentage, digit =1)
+
+
+pie(celltype_df$percentage, labels = paste (celltype_df$Var1, sep = ' ', celltype_df$pct, '%'),
+    main = "S100B high cell types")
+
+top_n <- 3
+df_top <- celltype_df %>% 
+  arrange(desc(percentage)) %>% 
+  slice(1:top_n)
+
+# Identify and aggregate the "others"
+df_others <- celltype_df %>% 
+  arrange(desc(percentage)) %>% 
+  slice((top_n + 1):n()) %>% 
+  summarise(Var1 = "others", percentage = sum(percentage))
+
+# Combine the top 3 and "others"
+celltype_df <- bind_rows(df_top, df_others)
+celltype_df$pct <- round (celltype_df$percentage, digit =1)
+
+pie(celltype_df$percentage, labels = paste (celltype_df$Var1, sep = ' ', celltype_df$pct, '%'),
+    main = "S100B high cell types")
+```
