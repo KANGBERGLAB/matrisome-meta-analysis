@@ -1,0 +1,467 @@
+## 9. WGCNA to identify coexpression modules of LGALS3 and S100B
+
+clear out ls
+```{r}
+rm(list = setdiff(ls(), "merged_seurat"))
+gc()
+```
+
+Get a count matrix
+```{r}
+merged_seurat2 <- merged_seurat
+nsc <- c("vRG", "oRG", "tRG")
+gexn <- c("Imm.GExN","M.GExN")
+merged_seurat2$sctype2 <- ifelse(merged_seurat2$sctype %in% nsc, "NSC",
+                                ifelse (merged_seurat2$sctype %in% gexn, "GExN",
+                                as.character(merged_seurat2$sctype)))
+
+merged_seurat2[["RNA"]] <- JoinLayers(merged_seurat2[["RNA"]])
+pseudo_obj <- AggregateExpression(merged_seurat2, assays = "RNA", return.seurat = T, group.by = c("sctype2", "donor"))
+table(pseudo_obj$sctype2)
+Idents(pseudo_obj) <- pseudo_obj$sctype2
+cell_levels <- c("NSC", "IPC", "GExN","Unknown","GABA IN","Astrocyte","OPC","Microglia","Endothelial")
+pseudo_obj@active.ident <- factor(x = pseudo_obj@active.ident, levels = cell_levels)
+
+neurolin_celltype <- c("NSC", "IPC", "GExN")
+subset_pseudo_obj <- subset (pseudo_obj, sctype2 %in% neurolin_celltype) #use NSC,IPC,GExN only to identify LGALS3
+subset_pseudo_obj <- NormalizeData(subset_pseudo_obj)
+subset_pseudo_obj <- ScaleData(subset_pseudo_obj,features = rownames(subset_pseudo_obj))
+expr_matrix <- GetAssayData(subset_pseudo_obj, slot = "scale.data")
+
+
+#check the presence of my gene of interest
+gene_of_interest <- "LGALS3"
+if(gene_of_interest %in% rownames(expr_matrix)) {
+  print(paste("The gene", gene_of_interest, "is present in the expression matrix."))
+}
+```
+
+set up WGCNA parameter
+```{r}
+# Choose a soft-thresholding power
+powers = c(c(1:10), seq(from = 12, to = 20, by = 2))
+sft <- pickSoftThreshold(t(expr_matrix), powerVector = powers, verbose = 5, RsquaredCut = 0.7)
+
+# Choose the power based on the scale-free topology fit index
+power <- sft$powerEstimate
+```
+
+construct module network
+```{r}
+net <- blockwiseModules(t(expr_matrix), 
+                        power = power,
+                        TOMType = "unsigned", 
+                        minModuleSize = 10,
+                        reassignThreshold = 0, 
+                        mergeCutHeight = 0.25,
+                        numericLabels = TRUE, 
+                        pamRespectsDendro = FALSE,
+                        saveTOMs = TRUE,
+                        saveTOMFileBase = "TOM",
+                        verbose = 3)
+
+moduleColors <- labels2colors(net$colors)
+```
+
+```{r}
+print(table(net$goodGenes))
+print(table(net$colors))
+print(head(net$colors))
+module_df <- data.frame(
+  gene_id = names(net$colors),
+  colors = labels2colors(net$colors)
+)
+```
+
+find module of that contains LGALS3
+```{r}
+gene_of_interest <- "LGALS3"
+gene_of_interest %in% module_df$gene_id
+module_df[module_df$gene_id == "LGALS3",]
+gene_module <- moduleColors[which(module_df$gene_id == gene_of_interest)]
+coexpressed_genes <- module_df$gene_id[moduleColors == gene_module]
+```
+
+```{r}
+gsg = goodSamplesGenes(expr_matrix, verbose = 3)
+gsg$allOK
+```
+
+make adjacency matrix of genes in the module associated with LGALS3
+```{r}
+library(igraph)
+
+# Calculate topological overlap
+TOM <- TOMsimilarityFromExpr(t(expr_matrix), power = power)
+TOM[1:5,1:5] # missing col and rownames
+rownames(TOM) <- rownames(expr_matrix)
+colnames(TOM) <- rownames(expr_matrix)
+TOM[1:5,1:5]
+# Subset the TOM to only include genes in the module of interest
+module_TOM <- TOM[coexpressed_genes, coexpressed_genes]
+
+# Convert TOM to a network
+network <- graph_from_adjacency_matrix(module_TOM, mode = "undirected", weighted = TRUE, diag = FALSE)
+
+# Plot the network
+plot(network, vertex.label = NA, vertex.size = 3, edge.arrow.size = 0.1)
+```
+
+Plot top 20 coexpressed genes
+```{r}
+
+gene_row <- module_TOM[gene_of_interest, ]
+
+# Sort the genes by their connection strength to your gene of interest
+sorted_genes <- sort(gene_row, decreasing = TRUE)
+
+# Get the top 10 most coexpressed genes (excluding the gene of interest itself)
+top_20_genes <- names(sorted_genes)[2:21]
+
+# Include your gene of interest in the list
+genes_to_plot <- c(gene_of_interest, top_20_genes)
+
+# Subset the TOM to include only these genes
+subset_TOM <- module_TOM[genes_to_plot, genes_to_plot]
+
+# Convert the subset TOM to a network
+network <- graph_from_adjacency_matrix(subset_TOM, mode = "undirected", weighted = TRUE, diag = FALSE)
+
+# Plot the network
+plot(network, 
+     vertex.label = V(network)$name,  # Use gene names as labels
+     vertex.size = 5,  
+     vertex.label.cex = 1,  
+     vertex.label.dist = 1.5, 
+     vertex.color = adjustcolor("skyblue", alpha.f = 0.5),
+     edge.width = E(network)$weight * 5,  
+     edge.color = adjustcolor("gray", alpha.f = 0.5),
+     layout = layout_with_fr(network) 
+)
+
+# Add a title to the plot
+title(main = paste("Top 20 genes coexpressed with", gene_of_interest), cex.main = 1.2)
+```
+
+Visualise expression levels of LGALS3 and HOPX in scRNA-seq
+```{r}
+colpal <- c ("#C7EBB1", "#FFD5FF", "#34854D", "#DEB0B0","#F26378", "#CA2F40", "#81B1DE","#C58862", "#7F517D", "#33608C", "#F5CA61", "#49525E")
+
+scatter_plot <- FeatureScatter(
+  object = merged_seurat2,
+  feature1 = "LGALS3",
+  feature2 = "HOPX",
+  plot.cor = FALSE,
+  group.by = "sctype",
+  cols = colpal
+)
+
+scatter_plot + 
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  stat_cor(method = "pearson",     
+           label.x = max(merged_seurat2@assays$integrated$data["LGALS3",]),
+           label.y = max(merged_seurat2@assays$integrated$data["HOPX",]),
+           label.sep = "\n", cor.coef.name = "r") +
+  labs(title = "Correlation between LGALS3 and HOPX",
+       x = "LGALS3 Expression",
+       y = "HOPX Expression") +
+  theme_classic()
+
+```
+
+
+
+```{r}
+colpal <- c ("#A9C2AA", "#DEB0B0","#DE495C")
+
+subset_pseudo_obj$sctype2 <- factor(x = subset_pseudo_obj$sctype2, levels = c("NSC","IPC","GExN"))
+
+scatter_plot <- FeatureScatter(
+  object = subset_pseudo_obj,
+  feature1 = "LGALS3",
+  feature2 = "HOPX",
+  plot.cor = FALSE,
+  group.by = "sctype2",
+  cols = colpal
+)
+
+scatter_plot + 
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  stat_cor(method = "pearson",     
+           label.x = 0,
+           label.y = 4,
+           label.sep = "\n", cor.coef.name = "r") +
+  labs(title = "Correlation between LGALS3 and HOPX",
+       x = "LGALS3 Expression",
+       y = "HOPX Expression") +
+  theme_classic()
+
+```
+
+```{r}
+colpal <- c ("#A9C2AA", "#DEB0B0","#DE495C")
+
+subset_pseudo_obj$sctype2 <- factor(x = subset_pseudo_obj$sctype2, levels = c("NSC","IPC","GExN"))
+
+scatter_plot <- FeatureScatter(
+  object = subset_pseudo_obj,
+  feature1 = "LGALS3",
+  feature2 = "HOPX",
+  plot.cor = FALSE,
+  group.by = "sctype2",
+  cols = colpal
+)
+
+# Extract the expression data for LGALS3 and HOPX
+lgals3_expression <- subset_pseudo_obj@assays$RNA$data["LGALS3",]
+hopx_expression <- subset_pseudo_obj@assays$RNA$data["HOPX",]
+
+# Create a data frame
+expression_df <- data.frame(
+  LGALS3 = lgals3_expression,
+  HOPX = hopx_expression
+)
+
+# Perform linear regression
+model <- lm(HOPX ~ LGALS3, data = expression_df)
+
+# Extract the regression coefficient
+regression_coefficient <- coef(model)["LGALS3"]
+
+# Print the regression coefficient
+print(paste("Regression coefficient:", regression_coefficient))
+
+# Create the scatter plot with regression line and correlation statistics
+scatter_plot + 
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  stat_cor(method = "pearson",     
+           label.x = max(subset_pseudo_obj@assays$integrated$data["LGALS3",]),
+           label.y = max(subset_pseudo_obj@assays$integrated$data["HOPX",]),
+           label.sep = "\n", cor.coef.name = "r") +
+  labs(title = "Correlation between LGALS3 and HOPX",
+       x = "LGALS3 Expression",
+       y = "HOPX Expression") +
+  theme_classic() +
+  annotate("text", 
+           x = min(subset_pseudo_obj@assays$integrated$data["LGALS3",]),
+           y = max(subset_pseudo_obj@assays$integrated$data["HOPX",]),
+           label = paste("Regression coefficient:", round(regression_coefficient, 4)),
+           hjust = 0, vjust = 1)
+```
+
+
+clear out ls
+```{r}
+rm(list = setdiff(ls(), "merged_seurat"))
+gc()
+```
+
+Get a count matrix
+```{r}
+merged_seurat2 <- merged_seurat
+nsc <- c("vRG", "oRG", "tRG")
+gexn <- c("Imm.GExN","M.GExN")
+merged_seurat2$sctype2 <- ifelse(merged_seurat2$sctype %in% nsc, "NSC",
+                                ifelse (merged_seurat2$sctype %in% gexn, "GExN",
+                                as.character(merged_seurat2$sctype)))
+
+library(Seurat)
+merged_seurat2[["RNA"]] <- JoinLayers(merged_seurat2[["RNA"]])
+pseudo_obj <- AggregateExpression(merged_seurat2, assays = "RNA", return.seurat = T, group.by = c("sctype2", "donor"))
+table(pseudo_obj$sctype2)
+Idents(pseudo_obj) <- pseudo_obj$sctype2
+cell_levels <- c("NSC", "IPC", "GExN","Unknown","GABA IN","Astrocyte","OPC","Microglia","Endothelial")
+pseudo_obj@active.ident <- factor(x = pseudo_obj@active.ident, levels = cell_levels)
+
+gliolin_celltype <- c("NSC", "Astrocyte", "OPC")
+subset_pseudo_obj <- subset (pseudo_obj, sctype2 %in% gliolin_celltype) #use NSC,Astro,OPC only
+subset_pseudo_obj <- NormalizeData(subset_pseudo_obj)
+subset_pseudo_obj <- ScaleData(subset_pseudo_obj,features = rownames(subset_pseudo_obj))
+expr_matrix <- GetAssayData(subset_pseudo_obj, slot = "data")
+
+var_genes <- apply(expr_matrix, 1, var)
+expr_matrix_filtered <- expr_matrix[var_genes > 0, ]
+
+#check the presence of my gene of interest
+gene_of_interest <- "S100B"
+if(gene_of_interest %in% rownames(expr_matrix)) {
+  print(paste("The gene", gene_of_interest, "is present in the expression matrix."))
+}
+```
+
+set up WGCNA parameter
+```{r}
+library(WGCNA)
+# Choose a soft-thresholding power
+powers = c(seq(1, 20, by = 1), seq(22, 30, by = 2))
+sft <- pickSoftThreshold(t(expr_matrix_filtered), powerVector = powers, RsquaredCut = 0.7,verbose = 5)
+
+# Plot the results
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n")
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     labels=powers,cex=0.9,col="red")
+# Add a horizontal line at 0.85
+abline(h=0.85,col="red")
+#R^2 is generally low due to lack of correlation perhaps heterogeneity in S100B expressing cells
+# Choose the power based on the scale-free topology fit index
+power <- sft$powerEstimate # choosing 14 as the power to include any r > 0.6 and more meaningful genes
+```
+
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n")
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     labels=powers,cex=0.9,col="red")
+
+construct module network
+```{r}
+net <- blockwiseModules(t(expr_matrix_filtered), 
+                        power = 14,
+                        TOMType = "unsigned", 
+                        minModuleSize = 10,
+                        reassignThreshold = 0, 
+                        mergeCutHeight = 0.25,
+                        numericLabels = TRUE, 
+                        pamRespectsDendro = FALSE,
+                        saveTOMs = TRUE,
+                        saveTOMFileBase = "TOM",
+                        verbose = 3)
+
+# Convert numeric labels to colors
+moduleColors <- labels2colors(net$colors)
+```
+
+```{r}
+print(table(net$goodGenes))
+print(table(net$colors))
+print(head(net$colors))
+module_df <- data.frame(
+  gene_id = names(net$colors),
+  colors = labels2colors(net$colors)
+)
+```
+
+find module of that contains S100B
+```{r}
+gene_of_interest <- "S100B"
+gene_of_interest %in% module_df$gene_id
+module_df[module_df$gene_id == "S100B",]
+gene_module <- moduleColors[which(module_df$gene_id == gene_of_interest)]
+coexpressed_genes <- module_df$gene_id[moduleColors == gene_module]
+```
+
+```{r}
+gsg = goodSamplesGenes(expr_matrix_filtered, verbose = 3)
+gsg$allOK
+```
+
+make adjacency matrix of genes in the module associated with S100B
+```{r}
+library(igraph)
+
+# Calculate topological overlap
+TOM <- TOMsimilarityFromExpr(t(expr_matrix_filtered), power = 14, corType = "pearson")
+TOM[1:5,1:5] # missing col and rownames
+rownames(TOM) <- rownames(expr_matrix_filtered)
+colnames(TOM) <- rownames(expr_matrix_filtered)
+TOM[1:5,1:5]
+# Subset the TOM to only include genes in the module of interest
+module_TOM <- TOM[coexpressed_genes, coexpressed_genes]
+
+# Convert TOM to a network
+network <- graph_from_adjacency_matrix(module_TOM, mode = "undirected", weighted = TRUE, diag = FALSE)
+
+# Plot the network
+plot(network, vertex.label = NA, vertex.size = 3, edge.arrow.size = 0.1)
+```
+
+Plot top 20 coexpressed genes
+```{r}
+
+gene_row <- module_TOM[gene_of_interest, ]
+
+# Sort the genes by their connection strength to your gene of interest
+sorted_genes <- sort(gene_row, decreasing = TRUE)
+
+specific_gene <- "OLIG2"
+
+if (specific_gene %in% names(sorted_genes)) {
+  rank <- match(specific_gene, names(sorted_genes)) 
+  print(paste("The rank of", specific_gene, "is:", rank))
+} else {
+  print(paste(specific_gene, "is not in the sorted genes."))
+}
+
+top_33_genes <- names(sorted_genes)[2:33]
+
+# Include your gene of interest in the list
+genes_to_plot <- c(gene_of_interest, top_33_genes)
+
+# Subset the TOM to include only these genes
+subset_TOM <- module_TOM[genes_to_plot, genes_to_plot]
+
+# Convert the subset TOM to a network
+network <- graph_from_adjacency_matrix(subset_TOM, mode = "undirected", weighted = TRUE, diag = FALSE)
+
+# Plot the network
+plot(network, 
+     vertex.label = V(network)$name,  
+     vertex.size = 5,  
+     vertex.label.cex = 1,  
+     vertex.label.dist = 1.5,  
+     vertex.color = adjustcolor("#EBA487", alpha.f = 0.5),
+     edge.width = E(network)$weight * 5,  
+     edge.color = adjustcolor("gray"),
+     layout = layout_with_fr(network)
+)
+
+# Add a title to the plot
+title(main = paste("Top 33 genes coexpressed with", gene_of_interest), cex.main = 1.2)
+```
+
+Visualise expression levels of S100B and OLIG2 in scRNA-seq
+```{r}
+colpal <- c ("#A9C2AA", "#7F517D", "#33608C")
+
+subset_pseudo_obj$sctype2 <- factor(x = subset_pseudo_obj$sctype2, levels = c("NSC","Astrocyte","OPC"))
+
+# Extract the expression data for LGALS3 and HOPX
+s100b_expression <- subset_pseudo_obj@assays$RNA$data["S100B",]
+olig2_expression <- subset_pseudo_obj@assays$RNA$data["OLIG2",]
+
+# Create a data frame
+expression_df <- data.frame(
+  S100B = s100b_expression,
+  OLIG2 = olig2_expression
+)
+
+# Perform linear regression
+model <- lm(OLIG2 ~ S100B, data = expression_df)
+
+# Extract the regression coefficient
+regression_coefficient <- coef(model)["S100B"]
+
+# Print the regression coefficient
+print(paste("Regression coefficient:", regression_coefficient))
+
+scatter_plot <- FeatureScatter(
+  object = subset_pseudo_obj,
+  feature1 = "LGALS3",
+  feature2 = "HOPX",
+  plot.cor = FALSE,
+  group.by = "sctype2",
+  cols = colpal
+)
+
+scatter_plot + 
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  stat_cor(method = "pearson",     
+           label.x = 0,
+           label.y = 4,
+           label.sep = "\n", cor.coef.name = "r") +
+  labs(title = "Correlation between LGALS3 and HOPX",
+       x = "LGALS3 Expression",
+       y = "HOPX Expression") +
+  theme_classic()
+
+```
