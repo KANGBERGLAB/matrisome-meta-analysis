@@ -1,0 +1,179 @@
+## 3. Characterisation of clusters of vRG (14 vs 23 vs 28) & oRG (20 vs 19,31,34)
+```{r}
+merged_seurat2 <- merged_seurat
+merged_seurat2[["RNA"]] <- JoinLayers(merged_seurat2[["RNA"]])
+pseudo_obj <- AggregateExpression(merged_seurat, assays = "RNA", return.seurat = T, group.by = c("seurat_clusters", "donor"))
+table(pseudo_obj$seurat_clusters)
+Idents(pseudo_obj) <- pseudo_obj$seurat_clusters
+pseudo_obj <- NormalizeData(pseudo_obj)
+pseudo_obj <- ScaleData(pseudo_obj,features = rownames(pseudo_obj))
+```
+
+vRG
+```{r}
+c14.markers <- FindMarkers(pseudo_obj, ident.1 = c("g14"), ident.2 = c("g23", "g28"), test.use = "DESeq2")
+table (c14.markers$cluster)
+sig.c14.markers <- subset (c14.markers, subset = p_val_adj < 0.05 & avg_log2FC > 1)
+
+
+c23.markers <- FindMarkers(pseudo_obj, ident.1 = c("g23"), ident.2 = c("g14", "g28"), test.use = "DESeq2")
+table (c23.markers$cluster)
+sig.c23.markers <- subset (c23.markers, subset = p_val_adj < 0.05 & avg_log2FC > 1)
+
+
+c28.markers <- FindMarkers(pseudo_obj, ident.1 = c("g28"), ident.2 = c("g14", "g23"), test.use = "DESeq2")
+table (c24.markers$cluster)
+sig.c24.markers <- subset (c24.markers, subset = p_val_adj < 0.05 & avg_log2FC > 1)
+```
+all_objects <- ls()
+sig_objects <- grep("^sig\\.", all_objects, value = TRUE)
+rm(list = sig_objects)
+
+```{r}
+library(dplyr)
+process_df <- function(df, label) {
+  df %>%
+    filter(p_val_adj < 0.05) %>%
+    filter(avg_log2FC > 1) %>%
+    top_n(10, avg_log2FC) %>%
+    mutate(source = label)
+}
+
+df_list <- list(c14.markers, c23.markers, c28.markers)
+labels <- c("c14", "c23", "c28")
+processed_dfs <- list()
+
+
+for (i in 1:length(df_list)) {
+  processed_dfs[[i]] <- process_df(df_list[[i]], labels[i])
+}
+
+# Combine all processed data frames
+vrg_combined_markers <- bind_rows(processed_dfs)
+head(vrg_combined_markers)
+```
+generate heatmap
+
+```{r}
+merged_seurat2 <- merged_seurat
+merged_seurat2[["RNA"]] <- JoinLayers(merged_seurat2[["RNA"]])
+Idents(merged_seurat2) <- merged_seurat2$seurat_clusters
+pseudo_seurat <- AggregateExpression(merged_seurat2, assays = "RNA", return.seurat = T, group.by ="seurat_clusters")
+pseudo_mat <- GetAssayData(object = pseudo_seurat, assay = "RNA")
+pseudo_mat <- pseudo_mat [,c("g14", "g23", "g28")]
+
+genes <- rownames(vrg_combined_markers)
+  
+mat<- pseudo_mat[genes, ] %>% as.matrix()
+mat<- t(scale(t(mat)))
+head(mat)
+cluster_anno<- colnames(pseudo_mat)
+myCol <- colorRampPalette(c('dodgerblue', 'black', 'yellow'))(50)
+myBreaks <- seq(-2, 2, length.out = 50)
+
+vrg_ht <- Heatmap(mat, name = "Expression",  
+        column_split = factor(cluster_anno, levels = c("g14", "g23", "g28")),
+        cluster_columns = FALSE,
+        show_column_dend = FALSE,
+        cluster_column_slices = TRUE,
+        column_title_gp = gpar(fontsize = 12),
+        column_gap = unit(0.5, "mm"),
+        cluster_rows = TRUE,
+        show_row_dend = FALSE,
+        col = colorRamp2(myBreaks, myCol),
+        row_names_gp = gpar(fontsize = 12),
+        column_title_rot = 90,
+        top_annotation = HeatmapAnnotation(foo = anno_block(gp = gpar(fill = colpal))),
+        show_column_names = FALSE,
+        use_raster = TRUE)
+```
+
+
+oRG
+```{r}
+c20.markers <- FindMarkers(pseudo_obj, ident.1 = "g20", ident.2 = c("g19","g31","g34"), test.use = "DESeq2")
+c31.markers <- FindMarkers(pseudo_obj, ident.1 = "g31", ident.2 = c("g19","g20","g34"), test.use = "DESeq2")
+c19.markers <- FindMarkers(pseudo_obj, ident.1 = "g19", ident.2 = c("g20","g31","g34"), test.use = "DESeq2")
+c34.markers <- FindMarkers(pseudo_obj, ident.1 = "g34", ident.2 = c("g19","g20","g31"), test.use = "DESeq2")
+```
+
+```{r}
+df_list <- list(c20.markers, c31.markers, c19.markers,c34.markers)
+labels <- c("c20", "c31", "c19", "c34")
+processed_dfs <- list()
+
+for (i in 1:length(df_list)) {
+  processed_dfs[[i]] <- process_df(df_list[[i]], labels[i])
+}
+
+# Combine all processed data frames
+org_combined_markers <- bind_rows(processed_dfs)
+head(org_combined_markers)
+```
+
+
+```{r}
+merged_seurat2 <- merged_seurat
+merged_seurat2[["RNA"]] <- JoinLayers(merged_seurat2[["RNA"]])
+Idents(merged_seurat2) <- merged_seurat2$seurat_clusters
+pseudo_seurat <- AggregateExpression(merged_seurat2, assays = "RNA", return.seurat = T, group.by ="seurat_clusters")
+pseudo_mat <- GetAssayData(object = pseudo_seurat, assay = "RNA")
+pseudo_mat <- pseudo_mat [,c("g20", "g31", "g19", "g34")]
+
+genes <- rownames(org_combined_markers)
+  
+mat<- pseudo_mat[genes, ] %>% as.matrix()
+mat<- t(scale(t(mat)))
+head(mat)
+cluster_anno<- colnames(pseudo_mat)
+myCol <- colorRampPalette(c('dodgerblue', 'black', 'yellow'))(50)
+myBreaks <- seq(-2, 2, length.out = 50)
+
+org_ht <- Heatmap(mat, name = "Expression",  
+        column_split = factor(cluster_anno, levels = c("g20", "g31", "g19", "g34")),
+        cluster_columns = FALSE,
+        show_column_dend = FALSE,
+        cluster_column_slices = TRUE,
+        column_title_gp = gpar(fontsize = 12),
+        column_gap = unit(0.5, "mm"),
+        cluster_rows = TRUE,
+        show_row_dend = FALSE,
+        col = colorRamp2(myBreaks, myCol),
+        row_names_gp = gpar(fontsize = 12),
+        column_title_rot = 90,
+        top_annotation = HeatmapAnnotation(foo = anno_block(gp = gpar(fill = colpal))),
+        show_column_names = FALSE,
+        use_raster = TRUE)
+```
+
+create DEG matrix for go term
+
+vrg
+```{r}
+deg_matrix_df <- function(df, label) {
+  df %>%
+    filter(p_val_adj < 0.05) %>%
+    mutate(source = label)
+}
+
+
+c14_processed <- deg_matrix_df(c14.markers, "vrg3")
+c23_processed <- deg_matrix_df(c23.markers, "vrg2")
+c28_processed <- deg_matrix_df(c28.markers, "vrg1")
+
+# Combine all processed data frames
+v_combined_markers <- bind_rows(c14_processed, c23_processed, c28_processed)
+write.csv(v_combined_markers, "~/Desktop/vrg_combined_markers.csv", row.names = TRUE)
+```
+
+org
+```{r}
+c19_processed <- deg_matrix_df(c19.markers, "org2")
+c20_processed <- deg_matrix_df(c20.markers, "org1")
+c31_processed <- deg_matrix_df(c31.markers, "org4")
+c34_processed <- deg_matrix_df(c34.markers, "org3")
+
+# Combine all processed data frames
+o_combined_markers <- bind_rows(c19_processed, c20_processed, c31_processed,c34_processed)
+write.csv(o_combined_markers, "org_combined_markers.csv", row.names = TRUE)
+```
