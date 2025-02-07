@@ -1,0 +1,120 @@
+## 6. Matrisome DEG of NSC subtypes
+clear out ls
+```{r}
+rm(list = setdiff(ls(), "merged_seurat"))
+gc()
+```
+
+make pseudobulk matrix
+```{r}
+merged_seurat2 <- merged_seurat
+nsc <- c("vRG", "oRG", "tRG")
+nsc_seurat <- subset(merged_seurat2, sctype %in% nsc)
+
+nsc_seurat[["RNA"]] <- JoinLayers(nsc_seurat[["RNA"]])
+pseudo_obj <- AggregateExpression(nsc_seurat, assays = "RNA", return.seurat = T, group.by = c("sctype", "donor"))
+table(pseudo_obj$sctype)
+Idents(pseudo_obj) <- pseudo_obj$sctype
+cell_levels <- c("vRG","oRG","tRG")
+pseudo_obj@active.ident <- factor(x = pseudo_obj@active.ident, levels = cell_levels)
+pseudo_obj <- NormalizeData(pseudo_obj)
+pseudo_obj <- ScaleData(pseudo_obj,features = rownames(pseudo_obj))
+```
+```{r}
+# Get all unique cell types
+cell_types <- unique(Idents(pseudo_obj))
+
+# Perform DESeq2 for each cell type
+all_results <- lapply(cell_types, function(ct) {
+  result <- perform_deseq2(pseudo_obj, ct)
+  result$cell_type <- ct
+  return(result)
+})
+
+# Combine all results
+final_results <- do.call(rbind, all_results)
+final_results$cell_type <- factor(final_results$cell_type, levels = cell_levels)
+final_results <- final_results[order(final_results$cell_type), ]
+head(final_results)
+
+sig_nsc_markers <- final_results %>%
+  filter(padj < 0.05 & log2FoldChange > 1)
+table(final_results$cell_type)
+
+top10_nsc_markers <- final_results %>%
+  filter(padj < 0.05) %>%
+  group_by(cell_type) %>%
+  top_n(10,log2FoldChange)
+
+NSC_subtype_markers <- final_results %>%
+  filter(log2FoldChange >= 0)
+
+NSC_subtype_matrisome_markers <- subset (NSC_subtype_markers, subset = NSC_subtype_markers$gene %in% matrisome_list)
+top10_NSC_subtype_matrisome_markers <- NSC_subtype_matrisome_markers %>%
+  filter(padj < 0.05) %>%
+  group_by(cell_type) %>%
+  top_n(10,log2FoldChange)
+write.csv (NSC_subtype_matrisome_markers,"matrisome_nsc_subtype_markers.csv") 
+table(duplicated(NSC_subtype_matrisome_markers$gene))
+```
+
+
+
+```{r}
+new_df <- NSC_subtype_matrisome_markers %>%
+  # Count the number of sources for each gene
+  group_by(gene) %>%
+  mutate(source_count = n_distinct(cell_type)) %>%
+  ungroup() %>%
+  
+  # Pivot the dataframe wider
+  pivot_wider(
+    id_cols = c(gene, source_count),
+    names_from = cell_type,
+    values_from = log2FoldChange,
+    names_prefix = "log2FoldChange_",
+    values_fill = 0  # This fills NA values with 0
+  ) %>%
+  
+  # Ensure all required columns exist, fill with 0 if missing
+  mutate(
+    log2FoldChange_vRG = coalesce(log2FoldChange_vRG, 0),
+    log2FoldChange_oRG = coalesce(log2FoldChange_oRG, 0),
+    log2FoldChangeC_tRG = coalesce(log2FoldChange_tRG, 0)
+  ) %>%
+  
+  # Add the source column
+  mutate(
+    source = case_when(
+      source_count > 1 ~ "NSC",
+      log2FoldChange_vRG != 0 ~ "vRG",
+      log2FoldChange_oRG != 0 ~ "oRG",
+      log2FoldChange_tRG != 0 ~ "tRG",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  
+  # Remove the source_count column
+  select(-source_count) %>%
+  
+  # Calculate the maximum avg_log2FC for each gene
+  mutate(max_log2FoldChange = pmax(log2FoldChange_vRG, log2FoldChange_oRG, log2FoldChange_tRG)) %>%
+  
+  # Add the label column
+  mutate(
+    label = case_when(
+      source != "NSC" ~ gene,
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  
+  # Keep only top 10 by max_avg_log2FC for non-NSC genes
+  group_by(source) %>%
+  mutate(
+    label = if_else(source != "NSC" & dense_rank(-max_log2FoldChange) <= 10, label, NA_character_)
+  ) %>%
+  ungroup() %>%
+  
+  # Remove the max_avg_log2FC column if you don't need it
+  select(-max_log2FoldChange)
+```
