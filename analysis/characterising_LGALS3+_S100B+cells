@@ -240,3 +240,79 @@ celltype_df$pct <- round (celltype_df$percentage, digit =1)
 pie(celltype_df$percentage, labels = paste (celltype_df$Var1, sep = ' ', celltype_df$pct, '%'),
     main = "S100B high cell types")
 ```
+
+
+
+clear out ls
+```{r}
+rm(list = setdiff(ls(), "merged_seurat"))
+gc()
+```
+
+
+```{r}
+first <- c(8, 9, 10, 10.5, 11, 12)
+early_second <- c(13, 15, 16, 17, 18, 19)
+mid_second <- c(20, 22, 23, 25, 26)
+
+merged_seurat2 <- merged_seurat
+table(merged_seurat2$gestation)
+merged_seurat2$trimester <- ifelse(merged_seurat2$gestation %in% first, "first",
+                                   ifelse(merged_seurat2$gestation %in% early_second, "early",
+                                          "mid"))
+table(merged_seurat2$trimester)
+
+nsc <- c("vRG", "oRG", "tRG")
+merged_seurat2$sctype2 <- ifelse(merged_seurat2$sctype %in% nsc, "NSC",
+                                as.character(merged_seurat2$sctype))
+```
+
+```{r}
+nsc_seurat <- subset(merged_seurat2, sctype2 == "NSC")
+nsc_seurat$trimester <- factor(x = nsc_seurat$trimester, levels = c("mid", "early", "first"))
+
+RidgePlot (nsc_seurat, features = "LGALS3", group.by = "trimester",assay = "integrated")
+RidgePlot (nsc_seurat, features = "LGALS3", group.by = "trimester",assay = "RNA")
+RidgePlot (nsc_seurat, features = "LGALS3", group.by = "trimester",log = TRUE)
+RidgePlot (nsc_seurat, features = "LGALS3", group.by = "trimester",log = TRUE) + xlim(1e-01,7.5)
+AverageExpression(nsc_seurat, group.by = "trimester", features = "LGALS3")
+nsc_seurat$trimester <- factor(x = nsc_seurat$trimester, levels = c("first", "early", "mid"))
+```
+
+
+```{r}
+threshold <- 1 
+Idents(merged_seurat2)<- merged_seurat2$trimester
+gene_expr <- GetAssayData(merged_seurat2, layer = "data")["LGALS3",]
+above_threshold <- gene_expr > threshold
+
+# Get the cell identities
+cell_identities <- Idents(merged_seurat2)
+proportions <- tapply(above_threshold, cell_identities, function(x) sum(x) / length(x))
+print(proportions)
+barplot(proportions, main = paste("Proportion of cells expressing LGALS3"), 
+        xlab = "Trimester", ylab = "Proportion", las = 2)
+```
+
+```{r}
+avg_hopx <- AverageExpression(merged_seurat2, group.by = "sctype2", features = "HOPX")
+hopx_seurat <- subset (merged_seurat2, subset = HOPX > avg_hopx$integrated[,"NSC"])
+hopx_seurat$trimester <- factor(x = hopx_seurat$trimester, levels = c("mid", "early", "first"))
+RidgePlot (hopx_seurat, features = "LGALS3", group.by = "trimester",assay = "integrated")
+RidgePlot (hopx_seurat, features = "LGALS3", group.by = "trimester",assay = "RNA")
+```
+
+```{r}
+AverageExpression(hopx_seurat, group.by = "trimester", features = "LGALS3")
+threshold <- 1
+Idents(hopx_seurat)<- hopx_seurat$trimester
+gene_expr <- GetAssayData(hopx_seurat, layer = "data")["LGALS3",]
+above_threshold <- gene_expr > threshold
+
+# Get the cell identities
+cell_identities <- Idents(hopx_seurat)
+proportions <- tapply(above_threshold, cell_identities, function(x) sum(x) / length(x))
+print(proportions)
+barplot(proportions, main = paste("Proportion of cells expressing LGALS3"), 
+        xlab = "Trimester", ylab = "Proportion", las = 2)
+```
