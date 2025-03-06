@@ -83,8 +83,7 @@ KANGBERGLAB/matrisome-meta-analysis
 │   ├── calculate_LISI_scores/
 │   ├── create_volcano_plot/
 │   ├── analyze_cell_type_degs/
-│   ├── analyze_temporal_patterns/
-│   └── zhong/
+│   └── analyze_temporal_patterns/
 └── scripts/
     ├── 20241011_dim_integration-1.Rmd
     └── 20241204_matrisome_analysis.Rmd
