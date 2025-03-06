@@ -120,7 +120,7 @@ UMAP visualization showing cell type clustering, a data frame containing LISI, a
 lapply(c("BiocManager","devtools","Seurat", "Matrix", "patchwork", "ggplot2", "ggthemes","scuttle", "DropletUtils", "uwot", "ggraph", "reshape2", "scran", "dplyr", "stringr", "ComplexHeatmap", "tidyr", "multtest", "metap", "generics", "igraph", 'ggpubr', 'ggprism', 'rstatix',"biomaRt","annotables","org.Hs.eg.db", "EnsDb.Hsapiens.v86", "tidyverse", 'ggsignif', 'HGNChelper', 'cowplot', 'colorRamp2', 'scales',"VennDiagram","plotly", "networkD3", "ggrepel", "RColorBrewer", "wesanderson", "DESeq2", "MAST", "SeuratDisk", "SeuratWrappers","gg3D","plot3D","purrr", "GO.db", "WGCNA","slingshot", "monocle3", "IReNA", "GENIE3","lisi","motifmatchr"), library, character.only = T)
 
 # Load pre-processed Seurat object
-load("demo_matrisome_seurat.RData")
+load("demo_seurat.RData")
 
 # Visualize the UMAP projection colored by cell type
 DimPlot(merged_seurat, reduction = "umap", group.by = "sctype", 
@@ -227,7 +227,61 @@ project_dir/
 │   └── zhong/
 └── scripts/
 ```
+## Performing analyses
+**data_integration.Rmd**: Data integration and preprocessing
 
+This script imports individual datasets, performs quality control, normalizes, and integrates data.
+
+Due to the large memory requirements, it's recommended to run this on a high-memory machine.
+
+Run time: 4-6 hours with 96GB RAM
+
+**other analysis**: Matrisome-focused analysis
+
+This script performs comprehensive analysis of matrisome gene expression in the integrated dataset.
+
+It contains 17 separate analysis sections that can be run independently.
+
+Run time for complete analysis: 8-12 hours
+
+**Output interpretation**
+The analyses generate various output files including:
+
+• Annotated Seurat object
+
+• Differential expression results for matrisome genes
+
+• Cell type-specific matrisome markers
+
+• Regulatory network files
+
+• High-quality visualizations
+
+**Memory considerations**
+The analysis was designed and tested on high-memory configurations. If running on systems with less than 64GB RAM:
+
+Consider using a subset of cells (random sampling)
+
+Run sections individually rather than the entire Rmd files
+
+Use functions like gc() frequently to free memory
+
+Process and save intermediate results to disk
+
+**Customization**
+The scripts can be modified to focus on specific cell types or developmental stages by adjusting the cell subsetting parameters. The matrisome gene list can also be replaced with custom gene sets to study other pathways or processes.
+
+## Summary of ey analyses:
+1. Dataset loading, QC, normalization, and batch effect correction
+2. Cell clustering and UMAP visualization
+3. Integration quality assessment
+4. Cell type annotation using reference markers
+5. Differential expression analysis with pseudobulk approach
+6. Identification of cell type-specific matrisome signatures
+7. Characterization of neural stem cell subtypes
+8. Co-expression and regulatory network analysis
+9. Temporal expression analysis
+10. Cell-cell interaction inference
 
 # Session information
 sessionInfo()
