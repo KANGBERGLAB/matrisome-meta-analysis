@@ -5,6 +5,19 @@ Preprint: Gim *et al.*, 2025 *"Deciphering Cell-Type and Temporal-Specific Matri
 
 https://www.biorxiv.org/content/10.1101/2025.02.24.639826v1.full
 
+Extracellular matrix (ECM) plays a crucial role in guiding these processes, yet its specific contributions and the implications of its dysregulation in neurodevelopmental disorders (NDDs) remain underexplored.
+
+![alt text](https://github.com/KANGBERGLAB/matrisome-meta-analysis/blob/dhg2022-patch-2/cortical_dev_ECM.png?raw=true)
+
+The matrisome refers to the set of genes and proteins that compose and regulate the ECM. We found that 17.2% of core matrisome genes and 9.8% of matrisome-associated genes are reported as NDD risk genes
+
+![alt text](https://github.com/KANGBERGLAB/matrisome-meta-analysis/blob/dhg2022-patch-2/fig2.png?raw=true)
+
+In this study, we conducted a meta-analysis of single-cell RNA sequencing (scRNA-seq) data from 37 donors, gestational weeks (GWs) 8 to 26 across six independent studies to elucidate cell type-specific matrisome gene expression signatures and their dynamics in the developing human cortex.
+
+![alt text](https://github.com/KANGBERGLAB/matrisome-meta-analysis/blob/dhg2022-patch-2/fig1.png?raw=true)
+
+
 # System requirements
 
 **Software dependencies**
