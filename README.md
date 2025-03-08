@@ -13,7 +13,7 @@ The matrisome refers to the set of genes and proteins that compose and regulate 
 
 ![alt text](https://github.com/KANGBERGLAB/matrisome-meta-analysis/blob/dhg2022-patch-2/fig2.png?raw=true)
 
-In this study, we conducted a meta-analysis of single-cell RNA sequencing (scRNA-seq) data from 37 donors, gestational weeks (GWs) 8 to 26 across six independent studies to elucidate cell type-specific matrisome gene expression signatures and their dynamics in the developing human cortex.
+In this study, we conducted a meta-analysis of single-cell RNA sequencing (scRNA-seq) data from 37 donors, gestational weeks (GWs) 8 to 26 across six independent studies to elucidate cell type-specific matrisome gene expression signatures and their dynamics in the developing human cortex. Our analytic pipeline employs pseudobulk differential gene expression (DGE) analysis using custom functions that integrates DESeq2 and Pearson's correlation. This approach effectively controls convariates for improved biological interpretability of the results and robustly detects lowly expressed genes.
 
 ![alt text](https://github.com/KANGBERGLAB/matrisome-meta-analysis/blob/dhg2022-patch-2/fig1.png?raw=true)
 
